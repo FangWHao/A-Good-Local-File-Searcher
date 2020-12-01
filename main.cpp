@@ -122,7 +122,14 @@ void first_run(){
 		flag_rescanned[i]=1;
 		USN_ID[i]=write_MFT(disk_path,data_dst,data[i]);
 		last_USN[i]=GET_USN(disk_path,0,0,tmp_ull,tmp_nod,new_name,renamed);
+		register int* tmp;
+		tmp=new int[MAXN];
+		for(int j=0;j<data[i].size();j++)
+			tmp[data[i][j].rnum]=j;
+		for(int j=0;j<data[i].size();j++)
+			data[i][j].ppos=tmp[data[i][j].prnum];
 		printf("Successfully scanned %s:\n", disk_path);
+		delete[] tmp;
 	}
 }
 void update_database(){
@@ -231,9 +238,9 @@ int main(){
 	else update_database();//先分析USN记录，记录要删除的文件再在读入时标记
 	update_info();
 	cout << "Totle Time : " << (double)clock() /CLOCKS_PER_SEC<< "s" << endl;
-	puts("\n\n\n\n");
-	cout<<"Input any word to start searching\n";
 	while(1){
+		puts("\n\n\n\n");
+		cout<<"Input any word to start searching\n";
 		match.read_reg(500,0);
 		char disk[]="C:";
 		for(int x=0;x<disk_num;x++,disk[0]++){
