@@ -693,6 +693,7 @@ void DFA::transform_NFA_to_DFA(NFA &bas_nfa) { //转换函数
 }
 
 void project::read_reg (int reg_max_size, bool switch_debug) {
+	project::clear();
 	char *reg = new char[reg_max_size+2];
 	read_string(reg);
 	while(NFA::read_reg(reg,0,strlen(reg)-1,0,1,true) == false) {
