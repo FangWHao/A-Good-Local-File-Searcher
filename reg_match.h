@@ -1,13 +1,13 @@
 /* 
-Ê¹ÓÃclass project½¨Á¢Ò»¸öÕıÔò±í´ïÊ½Æ¥Åä¹¤³Ì£» 
-¿Éµ÷ÓÃ¾ä±ú£º 
+ä½¿ç”¨class projectå»ºç«‹ä¸€ä¸ªæ­£åˆ™è¡¨è¾¾å¼åŒ¹é…å·¥ç¨‹ï¼› 
+å¯è°ƒç”¨å¥æŸ„ï¼š 
 void project::read_reg(int reg_max_size, bool switch_debug)
 bool project::read_reg(char *reg, bool switch_debug)
-	¹¦ÄÜ£ºÔØÈëÒ»¸öÕıÔò±í´ïÊ½£¬²»´«²ÎÊıÔòÓÉ¿ØÖÆÌ¨ÊäÈë£¬´«²ÎÊıÔò·µ»ØÕıÔò±í´ïÊ½ÊÇ·ñºÏ·¨¡£ 
+	åŠŸèƒ½ï¼šè½½å…¥ä¸€ä¸ªæ­£åˆ™è¡¨è¾¾å¼ï¼Œä¸ä¼ å‚æ•°åˆ™ç”±æ§åˆ¶å°è¾“å…¥ï¼Œä¼ å‚æ•°åˆ™è¿”å›æ­£åˆ™è¡¨è¾¾å¼æ˜¯å¦åˆæ³•ã€‚ 
 bool project::match(char *str)
-	¹¦ÄÜ£º×Ö·û´®Æ¥Åä£¬str´®ÊÇ·ñ¿ÉÒÔÓëÕıÔò±í´ïÊ½Æ¥Åä¡£±ØĞë±£Ö¤ÒÑ¾­ÔØÈëÁËÕıÔò±í´ïÊ½¡£ 
+	åŠŸèƒ½ï¼šå­—ç¬¦ä¸²åŒ¹é…ï¼Œsträ¸²æ˜¯å¦å¯ä»¥ä¸æ­£åˆ™è¡¨è¾¾å¼åŒ¹é…ã€‚å¿…é¡»ä¿è¯å·²ç»è½½å…¥äº†æ­£åˆ™è¡¨è¾¾å¼ã€‚ 
 void clear()
-	¹¦ÄÜ£ºÇå¿ÕÕıÔò±í´ïÊ½£¬½«project¸´Ô­ÎªÔ­×´Ì¬¡£ 
+	åŠŸèƒ½ï¼šæ¸…ç©ºæ­£åˆ™è¡¨è¾¾å¼ï¼Œå°†projectå¤åŸä¸ºåŸçŠ¶æ€ã€‚ 
 */
 #include <iostream>
 #include <cstdio>
@@ -28,7 +28,7 @@ const int NFA_MAX_LSTSIZE = 21002;
 const int MAX_CHARMAP_SIZE = 1005;
 const int CHARPOOL_MAX_SIZE = 515;
 const int DFA_MAX_SIZE = 1002;
-const int MAX_REG_LENGTH = 1005; //ÕıÔò±í´ïÊ½³¤¶È×î³¤ÏŞÖÆ£¡ 
+const int MAX_REG_LENGTH = 1005; //æ­£åˆ™è¡¨è¾¾å¼é•¿åº¦æœ€é•¿é™åˆ¶ï¼ 
 
 class NFA {
 	public:
@@ -47,11 +47,11 @@ class NFA {
 		void addedge_without_adding_in_charpool(int stpoint, int destpoint, char dir);
 		void debug() ;
 		void clear() ;
-		int size; //Ä¬ÈÏÆğÊ¼µãstÎª½Úµã0,dest½ÚµãÎª1 
-		map<char,int> head[NFA_MAX_SIZE];  //link[i][A] = j : ×´Ì¬i¶ÁÈë×Ö·ûAºó½øÈë×´Ì¬j£¬¶¨Òå¿Õ°üÎª'\0',else°üÎª'\1' 
-		//else°üµÄ¶¨Òå£ºÓöµ½ÁËcharpoolÍâµÄÈÎºÎ×Ö·ûÊ±£¬×ßÕâÌõ±ß
-		int pos[NFA_MAX_LSTSIZE], nxt[NFA_MAX_LSTSIZE], cnt; //ÁÚ½Ó±í 
-		set<char> charpool; //´¢´æËùÓĞ×Ö·û£¬ÌØ±ğµØ£¬'\1'ÊôÓÚcharpoolµ±ÇÒ½öµ±´æÔÚÅÅ³ıÔËËã 
+		int size; //é»˜è®¤èµ·å§‹ç‚¹stä¸ºèŠ‚ç‚¹0,destèŠ‚ç‚¹ä¸º1 
+		map<char,int> head[NFA_MAX_SIZE];  //link[i][A] = j : çŠ¶æ€iè¯»å…¥å­—ç¬¦Aåè¿›å…¥çŠ¶æ€jï¼Œå®šä¹‰ç©ºåŒ…ä¸º'\0',elseåŒ…ä¸º'\1' 
+		//elseåŒ…çš„å®šä¹‰ï¼šé‡åˆ°äº†charpoolå¤–çš„ä»»ä½•å­—ç¬¦æ—¶ï¼Œèµ°è¿™æ¡è¾¹
+		int pos[NFA_MAX_LSTSIZE], nxt[NFA_MAX_LSTSIZE], cnt; //é‚»æ¥è¡¨ 
+		set<char> charpool; //å‚¨å­˜æ‰€æœ‰å­—ç¬¦ï¼Œç‰¹åˆ«åœ°ï¼Œ'\1'å±äºcharpoolå½“ä¸”ä»…å½“å­˜åœ¨æ’é™¤è¿ç®— 
 };
 class DFA {
 	public:
@@ -69,15 +69,15 @@ class DFA {
 		void update() ;
 		void debug() ; 
 		void clear() ;
-		int size; //Ä¬ÈÏÆğÊ¼µãst=1,ÖÕ½áµãdest=size 
-		set<int> state[DFA_MAX_SIZE]; //Ã¿¸ö½Úµã´ú±íµÄ×´Ì¬ 
-		int lnk[DFA_MAX_SIZE][CHARPOOL_MAX_SIZE]; //´¢´æDFAµÄ±ß 
-		set<char> charpool; //´¢´æËùÓĞ×Ö·û£¬ÌØ±ğµØ£¬'\1'ÊôÓÚcharpoolµ±ÇÒ½öµ±´æÔÚÅÅ³ıÔËËã 
-		bool cancelled[DFA_MAX_SIZE]; //¼ò»¯DFAÊ±£ºÊÇ·ñÉ¾µã 
-		bool is_end[DFA_MAX_SIZE]; //ÊÇ·ñÎª½ÓÊÕÌ¬ 
+		int size; //é»˜è®¤èµ·å§‹ç‚¹st=1,ç»ˆç»“ç‚¹dest=size 
+		set<int> state[DFA_MAX_SIZE]; //æ¯ä¸ªèŠ‚ç‚¹ä»£è¡¨çš„çŠ¶æ€ 
+		int lnk[DFA_MAX_SIZE][CHARPOOL_MAX_SIZE]; //å‚¨å­˜DFAçš„è¾¹ 
+		set<char> charpool; //å‚¨å­˜æ‰€æœ‰å­—ç¬¦ï¼Œç‰¹åˆ«åœ°ï¼Œ'\1'å±äºcharpoolå½“ä¸”ä»…å½“å­˜åœ¨æ’é™¤è¿ç®— 
+		bool cancelled[DFA_MAX_SIZE]; //ç®€åŒ–DFAæ—¶ï¼šæ˜¯å¦åˆ ç‚¹ 
+		bool is_end[DFA_MAX_SIZE]; //æ˜¯å¦ä¸ºæ¥æ”¶æ€ 
 };
 
-class project: private NFA, private DFA { //Õû¸ö¹¤³ÌÊ¹ÓÃÒ»¸öclass£¬¿Éµ÷ÓÃÕıÔò±í´ïÊ½¶ÁÈëºÍÆ¥ÅäÁ½¸öº¯Êı 
+class project: private NFA, private DFA { //æ•´ä¸ªå·¥ç¨‹ä½¿ç”¨ä¸€ä¸ªclassï¼Œå¯è°ƒç”¨æ­£åˆ™è¡¨è¾¾å¼è¯»å…¥å’ŒåŒ¹é…ä¸¤ä¸ªå‡½æ•° 
 public: 
 	bool read_reg(char *str, bool switch_debug) ;
 	void read_reg(int reg_max_size, bool switch_debug) ;
@@ -141,7 +141,7 @@ void NFA::debug() {
 	
 }
 void NFA::addedge(int stpoint, int destpoint, char dir) {
-//ÓÉÓÚNFAµÄÃ¿¸ö±ßÊôĞÔ¿ÉÄÜ¶ÔÓ¦¶à¸ö±ß£¬Ê¹ÓÃÁÚ½Ó±í´æ´¢ 
+//ç”±äºNFAçš„æ¯ä¸ªè¾¹å±æ€§å¯èƒ½å¯¹åº”å¤šä¸ªè¾¹ï¼Œä½¿ç”¨é‚»æ¥è¡¨å­˜å‚¨ 
 	cnt++;
 	pos[cnt] = destpoint;
 	nxt[cnt] = head[stpoint][dir];
@@ -155,7 +155,7 @@ void NFA::addedge_without_adding_in_charpool(int stpoint, int destpoint, char di
 	nxt[cnt] = head[stpoint][dir];
 	head[stpoint][dir] = cnt;
 }
-int get_next_pos(char *reg,int st) { //Ñ°ÕÒÓëÄ³×óÀ¨ºÅÆ¥ÅäµÄÓÒÀ¨ºÅ£¬Èç¹û²»ÊÇ×óÀ¨ºÅÔò·µ»ØÔ­Î»ÖÃ 
+int get_next_pos(char *reg,int st) { //å¯»æ‰¾ä¸æŸå·¦æ‹¬å·åŒ¹é…çš„å³æ‹¬å·ï¼Œå¦‚æœä¸æ˜¯å·¦æ‹¬å·åˆ™è¿”å›åŸä½ç½® 
 	if(reg[st] != '(' || reg[st-1] == '\\')
 		return st;
 	int tmp = -1;
@@ -169,7 +169,7 @@ int get_next_pos(char *reg,int st) { //Ñ°ÕÒÓëÄ³×óÀ¨ºÅÆ¥ÅäµÄÓÒÀ¨ºÅ£¬Èç¹û²»ÊÇ×óÀ¨º
 	return st;
 }
 struct split_result {
-	int mode; //0 - ÎŞÔËËã  1 - Á¬½Ó  2 - ÁªºÏ  3 - Kleene°ü  4 - ÅÅ³ı·ûºÅ£¨Î´Íê´ıĞø£© 
+	int mode; //0 - æ— è¿ç®—  1 - è¿æ¥  2 - è”åˆ  3 - KleeneåŒ…  4 - æ’é™¤ç¬¦å·ï¼ˆæœªå®Œå¾…ç»­ï¼‰ 
 	int leftL,leftR, rightL,rightR;
 	void maintain(char *reg) {
 		while(reg[leftL] == '(' && get_next_pos(reg,leftL) == leftR)
@@ -196,29 +196,29 @@ struct split_result {
 };
 split_result split(char *reg,int L,int R) {
 	int tmp, cnt=0;
-	if(reg[L] == '^' && reg[L-1] != '\\') //ÅĞ¶ÏÊÇ·ñÎªÅÅ³ıÔËËã£º¿ÉÒÔÉúĞ§µÄÅÅ³ıÔËËã·û±ØÈ»ÔÚLÉÏ 
+	if(reg[L] == '^' && reg[L-1] != '\\') //åˆ¤æ–­æ˜¯å¦ä¸ºæ’é™¤è¿ç®—ï¼šå¯ä»¥ç”Ÿæ•ˆçš„æ’é™¤è¿ç®—ç¬¦å¿…ç„¶åœ¨Lä¸Š 
 		return split_result(4,L+1,R);
 	int lkloc=-1, unloc=-1, klloc=-1;
 	for(int i=L;i<=R;i++) {
-		i = get_next_pos(reg,i); //½«iÇ°µ÷ÖÁÆ¥ÅäÓÒÀ¨ºÅÎ»ÖÃÉÏ£¨ÕıºÃÂäÔÚÓÒÀ¨ºÅÉÏ£©»ò²»¸Ä±äi£¨µ±reg[i]²»ÎªÕæ×óÀ¨ºÅ£© 
-		if(reg[i] == '\\') //°ÑÒ»¸ö×Ö·û¼ÇÂ¼Ò»´Î 
+		i = get_next_pos(reg,i); //å°†iå‰è°ƒè‡³åŒ¹é…å³æ‹¬å·ä½ç½®ä¸Šï¼ˆæ­£å¥½è½åœ¨å³æ‹¬å·ä¸Šï¼‰æˆ–ä¸æ”¹å˜iï¼ˆå½“reg[i]ä¸ä¸ºçœŸå·¦æ‹¬å·ï¼‰ 
+		if(reg[i] == '\\') //æŠŠä¸€ä¸ªå­—ç¬¦è®°å½•ä¸€æ¬¡ 
 			i++;
-		cnt++; //ÕÒµ½Ò»¸öÔª£¬¼ÆÊı 
+		cnt++; //æ‰¾åˆ°ä¸€ä¸ªå…ƒï¼Œè®¡æ•° 
 		if(i>=R)
 			break;
-		if(reg[i+1] == '*' && reg[i] != '\\') { //ÕÒµ½µÚÒ»¸öKleene°ü 
+		if(reg[i+1] == '*' && reg[i] != '\\') { //æ‰¾åˆ°ç¬¬ä¸€ä¸ªKleeneåŒ… 
 			i++;
 			if(klloc == -1)
 				klloc = i;
-		} //ÕâÀï²»ÔÙÖ±½Óelse if: ´æÔÚa*bÀà´® 
+		} //è¿™é‡Œä¸å†ç›´æ¥else if: å­˜åœ¨a*bç±»ä¸² 
 		if(i>=R)
 			break;
-		if(reg[i+1] == '|' && reg[i] != '\\') { //ÕÒµ½µÚÒ»¸öÁªºÏ 
-			i++; //±£Ö¤ÔÙ¼ÓÒ»ºóÌø¹ı¸Ã·ûºÅ 
+		if(reg[i+1] == '|' && reg[i] != '\\') { //æ‰¾åˆ°ç¬¬ä¸€ä¸ªè”åˆ 
+			i++; //ä¿è¯å†åŠ ä¸€åè·³è¿‡è¯¥ç¬¦å· 
 			if(unloc == -1)
-				unloc = i; //unlocÎ»ÖÃÔÚ | ·ûºÅÉÏ 
+				unloc = i; //unlocä½ç½®åœ¨ | ç¬¦å·ä¸Š 
 		}
-		else { //ÕÒµ½µÚÒ»¸öÁ¬½Ó 
+		else { //æ‰¾åˆ°ç¬¬ä¸€ä¸ªè¿æ¥ 
 			if(lkloc == -1) {
 				lkloc = i;
 			}
@@ -228,19 +228,19 @@ split_result split(char *reg,int L,int R) {
 //	cout<<L<<' '<<R<<endl;
 
 	split_result ret;
-	if(lkloc != -1) { //Á¬½ÓÓÅÏÈ¼¶¸ß 
+	if(lkloc != -1) { //è¿æ¥ä¼˜å…ˆçº§é«˜ 
 		//L ~ loc, loc+1 ~ R
 		ret = split_result(1,L,lkloc,lkloc+1,R);
 		ret.maintain(reg);
 		return ret;
 	}
-	if(unloc != -1) { //ÁªºÏÓÅÏÈ¼¶´ÎÖĞ 
+	if(unloc != -1) { //è”åˆä¼˜å…ˆçº§æ¬¡ä¸­ 
 		//L ~ loc-1, loc+1 ~ R
 		ret = split_result(2,L,unloc-1,unloc+1,R);
 		ret.maintain(reg);
 		return ret;
 	}
-	if(klloc != -1) { //Kleene°üÓÅÏÈ¼¶×îµÍ 
+	if(klloc != -1) { //KleeneåŒ…ä¼˜å…ˆçº§æœ€ä½ 
 		//L ~ loc-1
 		ret = split_result(3,L,klloc-1);
 		ret.maintain(reg);
@@ -250,22 +250,22 @@ split_result split(char *reg,int L,int R) {
 	ret = split_result(0,L,R);
 	ret.maintain(reg);
 	return ret;
-	//ÎŞÔËËã 
+	//æ— è¿ç®— 
 }
 struct hidden_edge_node {
-	int left_bound, right_bound; //´æ´¢ÅÅ³ıµÄ×Ö·û£ºposition in reg[]
-	int u,v; //u->vÁ¬±ß 
+	int left_bound, right_bound; //å­˜å‚¨æ’é™¤çš„å­—ç¬¦ï¼šposition in reg[]
+	int u,v; //u->vè¿è¾¹ 
 };
 queue<hidden_edge_node> hidden_edge;
 bool NFA::read_reg (char *reg, int L, int R, int start_point, int dest_point, bool is_birth) {
 	if(!check_reg(reg)) {
 		return false;
 	}
-//´ËÊ±ÈÏ¿Éreg´®ÒÑ¾­Í¨¹ıÁËÆ´Ğ´¼ì²â 
-	if(is_birth) //³õÊ¼»¯ 
+//æ­¤æ—¶è®¤å¯regä¸²å·²ç»é€šè¿‡äº†æ‹¼å†™æ£€æµ‹ 
+	if(is_birth) //åˆå§‹åŒ– 
 		while(!hidden_edge.empty())
 			hidden_edge.pop();
-	if(is_birth && reg[R] == '$' && reg[R-1] != '\\') //¼ì²âÏÂ±ê 
+	if(is_birth && reg[R] == '$' && reg[R-1] != '\\') //æ£€æµ‹ä¸‹æ ‡ 
 		R--;
 	else if(is_birth) {
 		int klpt1 = ++size, klpt2 = ++size, newstpt = ++size;
@@ -283,7 +283,7 @@ bool NFA::read_reg (char *reg, int L, int R, int start_point, int dest_point, bo
 		addedge(klpt2, klpt1, '\0');
 		start_point = newstpt;
 	}
-	if(is_birth && reg[L] == '^') //¼ì²âÉÏ±ê 
+	if(is_birth && reg[L] == '^') //æ£€æµ‹ä¸Šæ ‡ 
 		L++;
 	else if(is_birth) {
 		int klpt1 = ++size, klpt2 = ++size, newdespt = ++size;
@@ -301,13 +301,13 @@ bool NFA::read_reg (char *reg, int L, int R, int start_point, int dest_point, bo
 		addedge(klpt2, klpt1, '\0');
 		dest_point = newdespt;
 	}
-	while(reg[L] == '(' && R == get_next_pos(reg,L)) //È¥À¨ºÅ 
+	while(reg[L] == '(' && R == get_next_pos(reg,L)) //å»æ‹¬å· 
 		L++, R--;
 	//from start_point to dest_point : [reg] route 
 	split_result ret = split(reg,L,R);
-	if(ret.mode == 0) { //µ¥×Ö·û£¬¿ªÊ¼Á¬±ß 
+	if(ret.mode == 0) { //å•å­—ç¬¦ï¼Œå¼€å§‹è¿è¾¹ 
 		if(ret.leftL != ret.leftR && (ret.leftL != ret.leftR-1 || reg[ret.leftL] != '\\')) {
-			puts("Error 1 in read_reg!!"); //¶à×Ö·û³öÏÖ 
+			puts("Error 1 in read_reg!!"); //å¤šå­—ç¬¦å‡ºç° 
 			exit(100);
 		}
 		addedge(start_point,dest_point,reg[ret.leftR]);
@@ -335,8 +335,8 @@ bool NFA::read_reg (char *reg, int L, int R, int start_point, int dest_point, bo
 		addedge(start_point, dest_point, '\0');
 		addedge(klpt2, klpt1, '\0');
 	}
-	else if(ret.mode == 4) { //ÅÅ³ıÔËËã£¬Ñ¹ÈëÒş±ß¶ÓÁĞ£¬²¢Ìí¼ÓËùÓĞÅÅ³ı×Ö·û½øÈëcharpool¼¯ 
-		/********///  ×îĞÂÍê³É²¿·Ö£¬²»±£Ö¤ÕıÈ· 
+	else if(ret.mode == 4) { //æ’é™¤è¿ç®—ï¼Œå‹å…¥éšè¾¹é˜Ÿåˆ—ï¼Œå¹¶æ·»åŠ æ‰€æœ‰æ’é™¤å­—ç¬¦è¿›å…¥charpoolé›† 
+		/********///  æœ€æ–°å®Œæˆéƒ¨åˆ†ï¼Œä¸ä¿è¯æ­£ç¡® 
 		hidden_edge_node current_edge;
 		current_edge.u = start_point;
 		current_edge.v = dest_point;
@@ -351,8 +351,8 @@ bool NFA::read_reg (char *reg, int L, int R, int start_point, int dest_point, bo
 	else {
 		puts("ERROR in NFA::read_reg : invalid split return mode!");
 	}
-	/********///  ×îĞÂÍê³É²¿·Ö£¬²»±£Ö¤ÕıÈ· 
-	if(is_birth) { //Á¬½ÓÒş±ß£¬Çå¿Õ¶ÓÁĞ 
+	/********///  æœ€æ–°å®Œæˆéƒ¨åˆ†ï¼Œä¸ä¿è¯æ­£ç¡® 
+	if(is_birth) { //è¿æ¥éšè¾¹ï¼Œæ¸…ç©ºé˜Ÿåˆ— 
 		hidden_edge_node current_edge;
 		set<char>::iterator charpool_iter;
 		bool hidden_edge_flag, add_else_pack_flag = false;
@@ -366,11 +366,11 @@ bool NFA::read_reg (char *reg, int L, int R, int start_point, int dest_point, bo
 					if(*charpool_iter == reg[i])
 						hidden_edge_flag = false;
 				}
-				if(hidden_edge_flag) { //±íÊ¾*charpool_iter²»Îª±»ÅÅ³ıÏî£¬¿ÉÒÔÁ¬±ß 
+				if(hidden_edge_flag) { //è¡¨ç¤º*charpool_iterä¸ä¸ºè¢«æ’é™¤é¡¹ï¼Œå¯ä»¥è¿è¾¹ 
 					addedge(current_edge.u, current_edge.v, *charpool_iter);
 				}
 			}
-			addedge_without_adding_in_charpool(current_edge.u, current_edge.v, '\1'); //Á¬else±ß 
+			addedge_without_adding_in_charpool(current_edge.u, current_edge.v, '\1'); //è¿elseè¾¹ 
 		}
 		if(add_else_pack_flag)
 			charpool.insert('\1');
@@ -382,7 +382,7 @@ bool NFA::read_reg (char *reg, int L, int R, int start_point, int dest_point) {
 }
 
 int get_next_pos_with_check(char *reg, int st, int tail) { 
-//Ñ°ÕÒÓëÄ³×óÀ¨ºÅÆ¥ÅäµÄÓÒÀ¨ºÅ£¬Èç¹û²»ÊÇ×óÀ¨ºÅÔò·µ»ØÔ­Î»ÖÃ 
+//å¯»æ‰¾ä¸æŸå·¦æ‹¬å·åŒ¹é…çš„å³æ‹¬å·ï¼Œå¦‚æœä¸æ˜¯å·¦æ‹¬å·åˆ™è¿”å›åŸä½ç½® 
 	if(reg[st] != '(' || reg[st-1] == '\\')
 		return st;
 	int tmp = -1;
@@ -397,14 +397,14 @@ int get_next_pos_with_check(char *reg, int st, int tail) {
 	}
 	return st;
 }
-bool check_reg(char *reg) { //Æ´Ğ´¼ì²éÖ÷º¯Êı 
-	if(strlen(reg) >= MAX_REG_LENGTH) { //±í´ïÊ½¹ı³¤ 
+bool check_reg(char *reg) { //æ‹¼å†™æ£€æŸ¥ä¸»å‡½æ•° 
+	if(strlen(reg) >= MAX_REG_LENGTH) { //è¡¨è¾¾å¼è¿‡é•¿ 
 		puts("The regular expression string is too long. Try to input a string with length less than 1000!");
 		return false;
 	}
 	int len = strlen(reg), tmp;
 	if(reg[len-1] == '\\') {
-		puts("Found char \\ at the end!"); //¶ÎÎ²·´Ğ±¸Ü 
+		puts("Found char \\ at the end!"); //æ®µå°¾åæ–œæ  
 		return false;
 	}
 	for(int i=0;i<=len-1;i++) {
@@ -473,7 +473,7 @@ bool check_reg(char *reg) { //Æ´Ğ´¼ì²éÖ÷º¯Êı
 	}
 	return true;
 }
-void read_string(char *str) { //ÊäÈëÒ»¸ö×Ö·û´®£¬ºöÂÔ¿Õ¸ñ 
+void read_string(char *str) { //è¾“å…¥ä¸€ä¸ªå­—ç¬¦ä¸²ï¼Œå¿½ç•¥ç©ºæ ¼ 
 	char c = getchar(); int cnt=0;
 	while(c == '\n' || c == '\r')
 		c = getchar();
@@ -484,15 +484,15 @@ void read_string(char *str) { //ÊäÈëÒ»¸ö×Ö·û´®£¬ºöÂÔ¿Õ¸ñ
 
 bool DFA::match (char *str) {
 	int len = strlen(str), current = 1;
-	if(is_end[current]) //DFAÊÇ¿ÕµÄ 
+	if(is_end[current]) //DFAæ˜¯ç©ºçš„ 
 		return true;
 	for(int i=0;i<len;i++) {
-		if(lnk[current][str[i]] == 0) //Èç¹û·ûºÅÎ´¶¨ÒåÔò×ßelse°ü 
+		if(lnk[current][str[i]] == 0) //å¦‚æœç¬¦å·æœªå®šä¹‰åˆ™èµ°elseåŒ… 
 			current = lnk[current][('\1')];
 		else
-			current = lnk[current][str[i]]; //ÑØ±ßĞĞ½ø 
+			current = lnk[current][str[i]]; //æ²¿è¾¹è¡Œè¿› 
 	}
-	return is_end[current]; //±ØĞëÔÚ×îºóÊ±¿Ì³É¹¦ÅÜµô 
+	return is_end[current]; //å¿…é¡»åœ¨æœ€åæ—¶åˆ»æˆåŠŸè·‘æ‰ 
 }
 bool project::match(char *str) {
 	return DFA::match(str);
@@ -527,15 +527,15 @@ void DFA::debug () {
 }
 
 /*
-¼ò»¯DFAº¯Êı 
-¹¦ÄÜ£º
-	²ğ³ıËùÓĞµÄ¿Õ°ü½Úµã 
+ç®€åŒ–DFAå‡½æ•° 
+åŠŸèƒ½ï¼š
+	æ‹†é™¤æ‰€æœ‰çš„ç©ºåŒ…èŠ‚ç‚¹ 
 */ 
 void DFA::update () {  
 	set<char>::iterator charpool_iter;
 	memset(cancelled,0,sizeof(cancelled));
 	for(int i=1;i<=size;i++) 
-		is_end[i] = (state[i].find(1) != state[i].end()); // is_end[i] = true: i×´Ì¬Îª½ÓÊÕÌ¬ 
+		is_end[i] = (state[i].find(1) != state[i].end()); // is_end[i] = true: içŠ¶æ€ä¸ºæ¥æ”¶æ€ 
 	bool flag;
 	for(int i=1;i<=size;i++) {
 		if(is_end[i])
@@ -545,33 +545,33 @@ void DFA::update () {
 				continue;
 			flag = true;
 			for(charpool_iter = charpool.begin();charpool_iter != charpool.end();charpool_iter++) {  
-				if(lnk[i][*charpool_iter] != lnk[j][*charpool_iter]) //ÅĞ¶ÏÁ½¸ö½Úµã¿É·ñºÏ²¢£ºÊÇ·ñÓµÓĞÍêÈ«ÏàÍ¬µÄ³ö±ß 
+				if(lnk[i][*charpool_iter] != lnk[j][*charpool_iter]) //åˆ¤æ–­ä¸¤ä¸ªèŠ‚ç‚¹å¯å¦åˆå¹¶ï¼šæ˜¯å¦æ‹¥æœ‰å®Œå…¨ç›¸åŒçš„å‡ºè¾¹ 
 					flag = false;
 			}
-			if(flag) { //É¾³ı 
-				cancelled[j] = true; //´òÉÏÉ¾³ı±ê¼Ç 
+			if(flag) { //åˆ é™¤ 
+				cancelled[j] = true; //æ‰“ä¸Šåˆ é™¤æ ‡è®° 
 				for(int _i=1;_i<=size;_i++)
 					for(charpool_iter = charpool.begin();charpool_iter != charpool.end();charpool_iter++) 
-						if(lnk[_i][*charpool_iter] == j) //°ÑËùÓĞµÄÈë±ßºÏ²¢µ½Í¬Ò»½Úµã 
+						if(lnk[_i][*charpool_iter] == j) //æŠŠæ‰€æœ‰çš„å…¥è¾¹åˆå¹¶åˆ°åŒä¸€èŠ‚ç‚¹ 
 							lnk[_i][*charpool_iter] = i;
 			}
 		}
 	}
 }
 /*
-ÒÔÏÂÎªNFA×ªDFAº¯ÊıÈº 
-¡¾»ù±¾Ëã·¨¡¿
-¶ÔÓÚ·ÇÈ·¶¨×Ô¶¯»úS£¬ÒÀ´Î½øĞĞÏÂÁĞ²Ù×÷£º 
-	1) ´ÓSÆğÊ¼½Úµã0´¦Ñ°ÕÒe(¦ÅµÄÌæ´ú·ûºÅ£¬ÏÂÍ¬)±Õ°ü£¬½«Ñ¡¶¨µã¼¯¶¨ÒåÎªÉú³ÉµÄDFA×Ô¶¯»úTµÄÆğÊ¼×´Ì¬£¬½«´Ë×´Ì¬Èë¶ÓQ 
-	2) È¡³öQ¶ÓÊ×µÄ×´Ì¬ÉèÎªcur¡£ 
-	3) ½«cur¶ÔÒ»¸ö¿ÉÄÜµÄ×Ö·ûa½øĞĞmove(a)²Ù×÷£¬µÃµ½Èô¸É¸ö×´Ì¬new 
-	4) Èç¹ûTÖĞÃ»ÓĞ×´Ì¬new£¬Ôò½«TÖĞ¼ÓÈë×´Ì¬new£¬ĞÂ×´Ì¬newÈë¶ÓQ¡£ÈônewÎª¿Õ»òTÖĞÒÑÓĞ×´Ì¬newÔò²»½øĞĞ´¦Àí 
-	5) Á¬±ß£ºTµÄcur×´Ì¬Ïònew×´Ì¬Á¬½ÓÊôĞÔÎªaµÄ±ß¡£ÌØ±ğµØ£¬ÈônewÎª¿ÕÔòÏòÆğÊ¼×´Ì¬Á¬±ß¡£ 
-	6) ¶ÔÒ»¸ö×´Ì¬cur£¬¶ÔÃ¿¸ö¿ÉÄÜÓĞ±ß£¨¼´ÔÚcharpoolÖĞ£©µÄ×Ö·ûÖ´ĞĞÒ»±é²Ù×÷(3)-(5)¡£ 
-	7) ÖØ¸´²Ù×÷(2)-(6)Ö±ÖÁQÎª¿Õ¡£
-	8) ÉèÖÃTÖĞµÄÃ¿Ò»¸ö°üº¬ÖÕÖ¹½ÚµãµÄ×´Ì¬Îª½ÓÊÜÌ¬¡£ 
+ä»¥ä¸‹ä¸ºNFAè½¬DFAå‡½æ•°ç¾¤ 
+ã€åŸºæœ¬ç®—æ³•ã€‘
+å¯¹äºéç¡®å®šè‡ªåŠ¨æœºSï¼Œä¾æ¬¡è¿›è¡Œä¸‹åˆ—æ“ä½œï¼š 
+	1) ä»Sèµ·å§‹èŠ‚ç‚¹0å¤„å¯»æ‰¾e(Îµçš„æ›¿ä»£ç¬¦å·ï¼Œä¸‹åŒ)é—­åŒ…ï¼Œå°†é€‰å®šç‚¹é›†å®šä¹‰ä¸ºç”Ÿæˆçš„DFAè‡ªåŠ¨æœºTçš„èµ·å§‹çŠ¶æ€ï¼Œå°†æ­¤çŠ¶æ€å…¥é˜ŸQ 
+	2) å–å‡ºQé˜Ÿé¦–çš„çŠ¶æ€è®¾ä¸ºcurã€‚ 
+	3) å°†curå¯¹ä¸€ä¸ªå¯èƒ½çš„å­—ç¬¦aè¿›è¡Œmove(a)æ“ä½œï¼Œå¾—åˆ°è‹¥å¹²ä¸ªçŠ¶æ€new 
+	4) å¦‚æœTä¸­æ²¡æœ‰çŠ¶æ€newï¼Œåˆ™å°†Tä¸­åŠ å…¥çŠ¶æ€newï¼Œæ–°çŠ¶æ€newå…¥é˜ŸQã€‚è‹¥newä¸ºç©ºæˆ–Tä¸­å·²æœ‰çŠ¶æ€newåˆ™ä¸è¿›è¡Œå¤„ç† 
+	5) è¿è¾¹ï¼šTçš„curçŠ¶æ€å‘newçŠ¶æ€è¿æ¥å±æ€§ä¸ºaçš„è¾¹ã€‚ç‰¹åˆ«åœ°ï¼Œè‹¥newä¸ºç©ºåˆ™å‘èµ·å§‹çŠ¶æ€è¿è¾¹ã€‚ 
+	6) å¯¹ä¸€ä¸ªçŠ¶æ€curï¼Œå¯¹æ¯ä¸ªå¯èƒ½æœ‰è¾¹ï¼ˆå³åœ¨charpoolä¸­ï¼‰çš„å­—ç¬¦æ‰§è¡Œä¸€éæ“ä½œ(3)-(5)ã€‚ 
+	7) é‡å¤æ“ä½œ(2)-(6)ç›´è‡³Qä¸ºç©ºã€‚
+	8) è®¾ç½®Tä¸­çš„æ¯ä¸€ä¸ªåŒ…å«ç»ˆæ­¢èŠ‚ç‚¹çš„çŠ¶æ€ä¸ºæ¥å—æ€ã€‚ 
 */ 
-set<int> get_closure(NFA &bas_nfa, set<int> &bas_set, char key0) { //Ñ°ÕÒbas_setµÄkey0±Õ°üµÄº¯Êı£¨e±Õ°üÎª'\0'±Õ°ü£© 
+set<int> get_closure(NFA &bas_nfa, set<int> &bas_set, char key0) { //å¯»æ‰¾bas_setçš„key0é—­åŒ…çš„å‡½æ•°ï¼ˆeé—­åŒ…ä¸º'\0'é—­åŒ…ï¼‰ 
 	set<int> ret;
 	set<int>::iterator iter;
 	pair<set<int>::iterator,bool> getret;
@@ -582,7 +582,7 @@ set<int> get_closure(NFA &bas_nfa, set<int> &bas_set, char key0) { //Ñ°ÕÒbas_set
 		if(ret.find(*iter) != ret.end()) {
 			continue;
 		}
-		while(!bfsq.empty()) //queue¾ÓÈ»Ã»ÓĞclear()...Æø¶¶Àä 
+		while(!bfsq.empty()) //queueå±…ç„¶æ²¡æœ‰clear()...æ°”æŠ–å†· 
 			bfsq.pop();
 		bfsq.push(*iter);
 		while(!bfsq.empty()) {
@@ -597,10 +597,10 @@ set<int> get_closure(NFA &bas_nfa, set<int> &bas_set, char key0) { //Ñ°ÕÒbas_set
 	}
 	return ret;
 }
-set<int> get_e_closure(NFA &bas_nfa, set<int> &bas_set) { //·½±ãµ÷ÓÃ 
+set<int> get_e_closure(NFA &bas_nfa, set<int> &bas_set) { //æ–¹ä¾¿è°ƒç”¨ 
 	return get_closure(bas_nfa, bas_set,'\0');
 }
-set<int> get_closure(NFA &bas_nfa, set<int> &bas_set, char key0, char key1) { //Ñ°ÕÒË«×Ö·û±Õ°üµÄº¯Êı£¨Î´Ê¹ÓÃ£© 
+set<int> get_closure(NFA &bas_nfa, set<int> &bas_set, char key0, char key1) { //å¯»æ‰¾åŒå­—ç¬¦é—­åŒ…çš„å‡½æ•°ï¼ˆæœªä½¿ç”¨ï¼‰ 
 	set<int> ret;
 	set<int>::iterator iter;
 	pair<set<int>::iterator,bool> getret;
@@ -611,7 +611,7 @@ set<int> get_closure(NFA &bas_nfa, set<int> &bas_set, char key0, char key1) { //
 		if(ret.find(*iter) != ret.end()) {
 			continue;
 		}
-		while(!bfsq.empty()) //queue¾ÓÈ»Ã»ÓĞclear()...Æø¶¶Àä 
+		while(!bfsq.empty()) //queueå±…ç„¶æ²¡æœ‰clear()...æ°”æŠ–å†· 
 			bfsq.pop();
 		bfsq.push(*iter);
 		while(!bfsq.empty()) {
@@ -629,18 +629,18 @@ set<int> get_closure(NFA &bas_nfa, set<int> &bas_set, char key0, char key1) { //
 	return ret;
 }
 set<int> move(NFA &bas_nfa, set<int> &bas_set, char keyc) { 
-//move(keyc)º¯Êı£ºµÃµ½bas_setµã¼¯µÄËùÓĞµãÅÜÒ»´Îkeyc±ßÖ®ºóµÄ¿ÉÄÜÄ¿µÄµØĞÎ³ÉµÄµã¼¯  
+//move(keyc)å‡½æ•°ï¼šå¾—åˆ°bas_setç‚¹é›†çš„æ‰€æœ‰ç‚¹è·‘ä¸€æ¬¡keycè¾¹ä¹‹åçš„å¯èƒ½ç›®çš„åœ°å½¢æˆçš„ç‚¹é›†  
 	set<int> ret;
 	set<int>::iterator iter;
 	int u;
-	for(iter = bas_set.begin(); iter != bas_set.end(); iter++) { //¼¯ÌåÈë¶Ó 
+	for(iter = bas_set.begin(); iter != bas_set.end(); iter++) { //é›†ä½“å…¥é˜Ÿ 
 		for(u=bas_nfa.head[*iter][keyc];u!=0;u=bas_nfa.nxt[u])
 			ret.insert(bas_nfa.pos[u]);
 	}
 	return get_closure(bas_nfa, ret, '\0');
 }
 
-bool compset(set<int> x,set<int> y) { //ÅĞ¶ÏÁ½¸ösetÊÇ·ñÏàµÈ 
+bool compset(set<int> x,set<int> y) { //åˆ¤æ–­ä¸¤ä¸ªsetæ˜¯å¦ç›¸ç­‰ 
 	if(x.size() != y.size())
 		return false;
 	set<int>::iterator iter;
@@ -650,43 +650,43 @@ bool compset(set<int> x,set<int> y) { //ÅĞ¶ÏÁ½¸ösetÊÇ·ñÏàµÈ
 	return true;
 }
 
-void DFA::transform_NFA_to_DFA(NFA &bas_nfa) { //×ª»»º¯Êı 
+void DFA::transform_NFA_to_DFA(NFA &bas_nfa) { //è½¬æ¢å‡½æ•° 
 	size = 0;
 	set<int> tmpset;
 	set<char>::iterator charpool_iter;
 	int tmp, reppos;
 	queue<int> q;
 	tmpset.insert(0);
-	state[++size] = get_closure(bas_nfa, tmpset, '\0'); //½«ÆğÊ¼×´Ì¬±£´æµ½DFAµÄstate×´Ì¬³ØÖĞ 
-	q.push(size); //ÆğÊ¼×´Ì¬µÄ±àºÅÈë¶Ó 
+	state[++size] = get_closure(bas_nfa, tmpset, '\0'); //å°†èµ·å§‹çŠ¶æ€ä¿å­˜åˆ°DFAçš„stateçŠ¶æ€æ± ä¸­ 
+	q.push(size); //èµ·å§‹çŠ¶æ€çš„ç¼–å·å…¥é˜Ÿ 
 	while(!q.empty()) {
-		tmp = q.front();//±¾´Î´¦ÀíµÄ×´Ì¬Îªstate[tmp] 
+		tmp = q.front();//æœ¬æ¬¡å¤„ç†çš„çŠ¶æ€ä¸ºstate[tmp] 
 		q.pop();
 		for(charpool_iter = bas_nfa.charpool.begin(); charpool_iter != bas_nfa.charpool.end(); charpool_iter++) {
-		//Ñ°ÕÒËùÓĞºÏÊÊµÄ±ßÊôĞÔ 
-			tmpset = move(bas_nfa,state[tmp],*charpool_iter); //ÅÜÒ»±émove 
-		//Ñ°ÕÒ±¾DFAÖĞÊÇ·ñÒÑ´æÔÚnew×´Ì¬ 
+		//å¯»æ‰¾æ‰€æœ‰åˆé€‚çš„è¾¹å±æ€§ 
+			tmpset = move(bas_nfa,state[tmp],*charpool_iter); //è·‘ä¸€émove 
+		//å¯»æ‰¾æœ¬DFAä¸­æ˜¯å¦å·²å­˜åœ¨newçŠ¶æ€ 
 			reppos = -1;
 			for(int i=1;i<=size;i++)
 				if(compset(tmpset,state[i])) {
 					reppos = i;
 					break;
 				}
-		//Ö´ĞĞ½á¹û 
-			if(reppos == -1 && tmpset.size() == 0) { //¿Õ×´Ì¬£¬Ë÷Òı»Ø1 
+		//æ‰§è¡Œç»“æœ 
+			if(reppos == -1 && tmpset.size() == 0) { //ç©ºçŠ¶æ€ï¼Œç´¢å¼•å›1 
 				lnk[tmp][*charpool_iter] = 1;
 			}
-			else if(reppos == -1) { //ÎŞÖØ¸´£¬½¨Á¢ĞÂ×´Ì¬±£´æÖ®£¬½¨±ß£¬Èë¶Ó 
+			else if(reppos == -1) { //æ— é‡å¤ï¼Œå»ºç«‹æ–°çŠ¶æ€ä¿å­˜ä¹‹ï¼Œå»ºè¾¹ï¼Œå…¥é˜Ÿ 
 				state[++size] = tmpset;
 				lnk[tmp][*charpool_iter] = size;
 				q.push(size);
 			}
-			else { //ÒÑ´æÔÚ£¬½¨±ß¼´¿É 
+			else { //å·²å­˜åœ¨ï¼Œå»ºè¾¹å³å¯ 
 				lnk[tmp][*charpool_iter] = reppos;
 			}
 		}
 	} 
-	charpool = bas_nfa.charpool; //¼Ì³ĞNFAµÄcharpool 
+	charpool = bas_nfa.charpool; //ç»§æ‰¿NFAçš„charpool 
 //	debug();
 	update();
 //	debug();
