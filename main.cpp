@@ -13,6 +13,7 @@
 #include <time.h>
 #include "USN.h"
 #include "reg_match.h"
+#include "file.h"
 using namespace std;
 #define ull unsigned long long
 #define MAXN 10000000
@@ -22,7 +23,7 @@ USN USN_ID[255]; //每一个硬盘中的USN日志编号
 bool flag_rescanned[30];//标记该磁盘是否被重新扫描过
 vector<int>rm_pos[30];  //被删除的文件在文件中的位置
 vector<int>rm,tmp_ull;  //被删除文件的USN编号
-vector<nod>data[30],tmp_nod,crt,rnm;//保存的文件所有信息，创建的文件信息和重命名的信息
+vector<dat>data[30],tmp_dat,crt,rnm;//保存的文件所有信息，创建的文件信息和重命名的信息
 vector<string>new_name;//保存一个被重命名文件的最终名字
 bool removed[MAXN],exist[MAXN];//标记是否被删除，是否已经存在
 int renamed[MAXN];//被重命名的文件的USN编号->new_name中的编号
@@ -68,7 +69,7 @@ int check_disk(){//检查本地磁盘数量
 	}
 	return tot;
 }
-USN write_MFT(const char* disk_path,const char* data_dst,vector<nod>&v){
+USN write_MFT(const char* disk_path,const char* data_dst,vector<dat>&v){
 	//输出指定磁盘的所有信息并返回该磁盘USN的ID
 	USN now_USN;
 	now_USN=GET_MFT(data_dst,disk_path,0,v);
@@ -88,7 +89,7 @@ bool check_info(){
 	bool flag=0;
 	char disk_path[]="C",data_dst[]="database\\c.db";
 	for(int i=0;i<disk_num;i++,disk_path[0]++,data_dst[9]++){
-		USN now_USN=GET_MFT(data_dst,disk_path,1,tmp_nod);
+		USN now_USN=GET_MFT(data_dst,disk_path,1,tmp_dat);
 		if(now_USN!=USN_ID[i]){
 			//若现有的USN的ID与上一次运行时的ID不符，说明USN日志遭到了改动
 			USN_ID[i]=now_USN;
@@ -121,7 +122,7 @@ void first_run(){
 	for(int i=0;i<disk_num;i++,disk_path[0]++,data_dst[9]++){
 		flag_rescanned[i]=1;
 		USN_ID[i]=write_MFT(disk_path,data_dst,data[i]);
-		last_USN[i]=GET_USN(disk_path,0,0,tmp_ull,tmp_nod,new_name,renamed);
+		last_USN[i]=GET_USN(disk_path,0,0,tmp_ull,tmp_dat,new_name,renamed);
 		register int* tmp;
 		tmp=new int[MAXN];
 		for(int j=0;j<data[i].size();j++)
@@ -140,7 +141,7 @@ void update_database(){
 		if(flag_rescanned[x])continue;
 		crt.clear();
 		last_USN[x]=GET_USN(disk_path,last_USN[x],1,rm,crt,new_name,renamed);
-		register nod buffer;
+		register dat buffer;
 		ifstream fin(data_dst, std::ios::binary);
 		while(1){
 			fin.read((char*)&buffer.rnum, sizeof(int));
@@ -242,13 +243,26 @@ int main(){
 		puts("\n\n\n\n");
 		cout<<"Input any word to start searching\n";
 		match.read_reg(500,0);
-		char disk[]="C:";
+		string disk="C:\\",filepath;
 		for(int x=0;x<disk_num;x++,disk[0]++){
 			for(int i=0;i<data[x].size();i++){
 				if(match.match(data[x][i].filename)){
-					cout<<disk<<'\\';
-					cout<<get_path(x,i)<<endl;
+					// cout<<disk<<'\\';
+					// cout<<get_path(x,i)<<endl;
 					//getchar();
+					//filepath=disk+get_path(x,i);
+					//long long filesize=get_size(filepath.c_str()).QuadPart;
+					//cout<<filepath<<' '<<filesize<<endl;
+					File tmp(data[x][i],x,disk+get_path(x,i));
+					cout<<"NAME: "<<tmp.filepath<<"\nSIZE: "<<tmp.filesize<<"KB\n";
+					cout<<"Creat Change Access Time\n";
+					print_time(tmp.CreatT);
+					cout<<"    ";
+					print_time(tmp.WriteT);
+					cout<<"    ";
+					print_time(tmp.AccessT);
+					cout<<'\n';
+					//print("%")
 				}
 			}
 		}
