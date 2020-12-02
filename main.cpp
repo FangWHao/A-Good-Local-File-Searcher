@@ -254,14 +254,17 @@ int main(){
 					//long long filesize=get_size(filepath.c_str()).QuadPart;
 					//cout<<filepath<<' '<<filesize<<endl;
 					File tmp(data[x][i],x,disk+get_path(x,i));
-					cout<<"NAME: "<<tmp.filepath<<"\nSIZE: "<<tmp.filesize<<"KB\n";
-					cout<<"Creat Change Access Time\n";
+					cout<<"NAME: "<<tmp.filepath;
+					if(tmp.filesize!=-1)
+						cout<<"\nSIZE: "<<tmp.filesize<<"KB\n";
+					else cout<<'\n';
+					cout<<"Creat Time             Change Time            Access Time\n";
 					print_time(tmp.CreatT);
 					cout<<"    ";
 					print_time(tmp.WriteT);
 					cout<<"    ";
 					print_time(tmp.AccessT);
-					cout<<'\n';
+					cout<<"\n\n";
 					//print("%")
 				}
 			}
