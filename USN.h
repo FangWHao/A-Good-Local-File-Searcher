@@ -1,3 +1,5 @@
+#ifndef _USN_H
+#define _USN_H
 #define UNICODE
 #define _UNICODE
 #define WIN32_LEAN_AND_MEAN
@@ -12,19 +14,10 @@
 #include <vector>
 #include <deque>
 #include <fstream>
+#include "file.h"
 using namespace std;
 #define BUF_LEN 4096
 #define ull unsigned long long
-struct nod{
-	char* filename;
-	int len;
-	int rnum, prnum,ppos;
-	nod(){}
-	nod(char* s,int r,int pr=0,int l=0,int pp=0):rnum(r),prnum(pr),len(l),ppos(pp){
-		filename=new char[l];
-		strcpy(filename,s);
-	}
-};
 struct MY_USN_RECORD
 {
 	DWORDLONG FileReferenceNumber;
@@ -34,7 +27,7 @@ struct MY_USN_RECORD
 	WCHAR FileName[MAX_PATH];
 	USN usn;
 };
-USN GET_MFT(string data_dst,string s,bool flag,vector<nod>&v)
+USN GET_MFT(string data_dst,string s,bool flag,vector<dat>&v)
 {
 	/*获取驱动句柄*/
 	s="\\\\.\\"+s+":";
@@ -129,7 +122,7 @@ bool is_ntfs(const char* drv){
 	CloseHandle(hVol);
 	return ret;
 }
-USN GET_USN(const char* drvname,USN startUSN,bool flag,vector<int>&rm,vector<nod>&cr,vector<string>&new_name,int* renamed)
+USN GET_USN(const char* drvname,USN startUSN,bool flag,vector<int>&rm,vector<dat>&cr,vector<string>&new_name,int* renamed)
 {
 	int cnt=0;
 	HANDLE hVol = INVALID_HANDLE_VALUE;
@@ -190,3 +183,4 @@ USN GET_USN(const char* drvname,USN startUSN,bool flag,vector<int>&rm,vector<nod
 	
 	return ret;
 }
+#endif
