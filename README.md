@@ -1,5 +1,5 @@
 # A-Good-Local-File-Searcher
-Good means very good.
+~~Good means very good.~~
 ## 用C++实现的基于NTFS下MFT和USN-Journal检索与类正则表达式-NFA-DFA字符串匹配的本地文件查找系统
 
 
