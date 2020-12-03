@@ -73,4 +73,10 @@ void print_time(FILETIME ftime){
     sprintf(str, "%04u-%02u-%02u %02u:%02u:%02u",rtime.wYear, rtime.wMonth, rtime.wDay, rtime.wHour, rtime.wMinute, rtime.wSecond);
     printf("%s",str);
 }
+bool size_cmp_l(File a,File b){ //0 代表由大到小 1 代表从小到大
+	return a.filesize>b.filesize;
+}
+bool size_cmp_s(File a,File b){ //0 代表由大到小 1 代表从小到大
+	return a.filesize<b.filesize;
+}
 #endif
