@@ -115,7 +115,6 @@ void first_run(){
 	mkdir("database");//创建文件夹
 	/****************Debug************/
 	freopen("database\\settings.db","w",stdout);
-	cout<<"Test"<<endl;
 	freopen("CON","w",stdout);
 	char disk_path[] ="C",data_dst[]="database\\c.db";
 	disk_num=check_disk();
@@ -207,10 +206,11 @@ string get_path(int x,int pos){
 	path=data[x][pos].filename;
 	register int fa=data[x][pos].ppos;
 	while(1){
+		if(fa==0)break;
+		//cout<<data[x][fa].filename<<' '<<data[x][fa].rnum<<' '<<data[x][fa].prnum<<endl;
 		path="\\"+path;
 		path=data[x][fa].filename+path;
 		fa=data[x][fa].ppos;
-		if(fa==0)break;
 	}
 	return path;
 }
@@ -228,7 +228,7 @@ int main(){
 		read_settings();//读入设置信息
 		read_info();    //读入USN64位ID和上次的最后一个USN
 		if(disk_num!=check_disk()){ //磁盘数量改变属于严重错误，应重新初始化
-			cout<<"Fatal Error:Change in disk number detected.";
+			cout<<"Fatal Error:Change in disk number detected.\n";
 			is_first_run=1;
 		}
 		else {
@@ -247,12 +247,6 @@ int main(){
 		for(int x=0;x<disk_num;x++,disk[0]++){
 			for(int i=0;i<data[x].size();i++){
 				if(match.match(data[x][i].filename)){
-					// cout<<disk<<'\\';
-					// cout<<get_path(x,i)<<endl;
-					//getchar();
-					//filepath=disk+get_path(x,i);
-					//long long filesize=get_size(filepath.c_str()).QuadPart;
-					//cout<<filepath<<' '<<filesize<<endl;
 					File tmp(data[x][i],x,disk+get_path(x,i));
 					cout<<"NAME: "<<tmp.filepath;
 					if(tmp.filesize!=-1)
