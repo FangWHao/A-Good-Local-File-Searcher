@@ -5,7 +5,7 @@
 
 
 ### Keep in mind that this is a very early demo
-
+### Potential Problem: Windows Defender may severly affect the speed of program
 
 ## Compile Environment:
 Target: x86_64-w64-mingw32
