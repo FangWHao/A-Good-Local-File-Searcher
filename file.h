@@ -73,10 +73,33 @@ void print_time(FILETIME ftime){
     sprintf(str, "%04u-%02u-%02u %02u:%02u:%02u",rtime.wYear, rtime.wMonth, rtime.wDay, rtime.wHour, rtime.wMinute, rtime.wSecond);
     printf("%s",str);
 }
-bool size_cmp_l(File a,File b){ //0 代表由大到小 1 代表从小到大
+bool Time_cmp(const FILETIME a,const FILETIME b){ // <
+	if(a.dwHighDateTime==b.dwHighDateTime)return a.dwLowDateTime<b.dwLowDateTime;
+	else return a.dwHighDateTime<b.dwHighDateTime;
+}
+bool size_cmp_l(File a,File b){ //由大到小
+	if(a.filesize==b.filesize)return a.filename>b.filename;
 	return a.filesize>b.filesize;
 }
-bool size_cmp_s(File a,File b){ //0 代表由大到小 1 代表从小到大
+bool size_cmp_s(File a,File b){ //由小到大
 	return a.filesize<b.filesize;
+}
+bool CreatT_cmp_l(File a,File b){
+	return !Time_cmp(a.CreatT,b.CreatT);
+}
+bool CreatT_cmp_s(File a,File b){
+	return Time_cmp(a.CreatT,b.CreatT);
+}
+bool AccessT_cmp_l(File a,File b){
+	return !Time_cmp(a.AccessT,b.AccessT);
+}
+bool AccessT_cmp_s(File a,File b){
+	return Time_cmp(a.AccessT,b.AccessT);
+}
+bool WriteT_cmp_l(File a,File b){
+	return !Time_cmp(a.WriteT,b.WriteT);
+}
+bool WriteT_cmp_s(File a,File b){
+	return Time_cmp(a.WriteT,b.WriteT);
 }
 #endif
