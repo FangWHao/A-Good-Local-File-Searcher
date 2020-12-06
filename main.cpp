@@ -11,13 +11,16 @@
 #include <deque>
 #include <vector>
 #include <time.h>
+#include <thread> 
+#include <conio.h>
+#include <mutex> 
 #include "USN.h"
 #include "reg_match.h"
 #include "file.h"
 using namespace std;
 #define ull unsigned long long
 #define MAXN 10000000
-int disk_num=0;
+int disk_num=0,page=1;
 USN last_USN[255];//读取到的上一次运行时各个硬盘的最后一个USN编号
 USN USN_ID[255]; //每一个硬盘中的USN日志编号
 bool flag_rescanned[30];//标记该磁盘是否被重新扫描过
@@ -25,8 +28,12 @@ vector<int>rm_pos[30];  //被删除的文件在文件中的位置
 vector<int>rm,tmp_ull;  //被删除文件的USN编号
 vector<dat>data[30],tmp_dat,crt,rnm;//保存的文件所有信息，创建的文件信息和重命名的信息
 vector<string>new_name;//保存一个被重命名文件的最终名字
+vector<File>result;
 bool removed[MAXN],exist[MAXN];//标记是否被删除，是否已经存在
+bool not_type=1,page_down=0,page_up=0;//无键盘事件
 int renamed[MAXN];//被重命名的文件的USN编号->new_name中的编号
+char con_buffer[10000];
+int bufferlen=-1;
 project match;
 void exit()
 {
@@ -76,13 +83,13 @@ USN write_MFT(const char* disk_path,const char* data_dst,vector<dat>&v){
 	return now_USN;
 }
 void read_info(){
-	freopen("database\\info.db","r",stdin);
-	cin>>disk_num;
+	ifstream fin("database\\info.db");
+	fin>>disk_num;
 	for(int i=0;i<disk_num;i++)
-		cin>>USN_ID[i];
+		fin>>USN_ID[i];
 	for(int i=0;i<disk_num;i++)
-		cin>>last_USN[i];
-	freopen("CON", "r", stdin);
+		fin>>last_USN[i];
+	fin.close();
 }
 bool check_info(){
 	//检查信息是否合理
@@ -102,20 +109,20 @@ bool check_info(){
 	}
 }
 bool update_info(){
-	freopen("database\\info.db","w",stdout);
-	cout<<disk_num<<endl;
+	ofstream fout("database\\info.db");
+	fout<<disk_num<<endl;
 	for(int i=0;i<disk_num;i++)
-		cout<<USN_ID[i]<<endl;
+		fout<<USN_ID[i]<<endl;
 	char disk_path[]="C";
 	for(int i=0;i<disk_num;i++)
-		cout<<last_USN[i]<<endl;
-	freopen("CON", "w", stdout);
+		fout<<last_USN[i]<<endl;
+	fout.close();
 }
 void first_run(){
 	mkdir("database");//创建文件夹
 	/****************Debug************/
-	freopen("database\\settings.db","w",stdout);
-	freopen("CON","w",stdout);
+	ofstream fout("database\\settings.db");
+	fout.close();
 	char disk_path[] ="C",data_dst[]="database\\c.db";
 	disk_num=check_disk();
 	for(int i=0;i<disk_num;i++,disk_path[0]++,data_dst[9]++){
@@ -214,6 +221,69 @@ string get_path(int x,int pos){
 	}
 	return path;
 }
+void print_res(const File& tmp){
+	cout<<"NAME: "<<tmp.filepath;
+	if(tmp.filesize!=-1)
+	cout<<"\nSIZE: "<<tmp.filesize<<"KB\n";
+	else cout<<'\n';
+	cout<<"Creat Time             Change Time            Access Time\n";
+	print_time(tmp.CreatT);
+	cout<<"    ";
+	print_time(tmp.WriteT);
+	cout<<"    ";
+	print_time(tmp.AccessT);
+	cout<<"\n\n";
+}
+int signa=0;
+mutex mu;
+void sear(){
+	int cnt=0,now=0,flag=0;
+	if((int)con_buffer[0]==0)return;
+	match.read_reg(con_buffer,0);
+	string disk="C:\\",filepath;
+	for(int x=0;x<disk_num;x++,disk[0]++){
+		for(int i=0;i<data[x].size();i++){
+			if(not_type){
+				return; //等待输入信号
+			}
+			if(flag==5){  //输出五条结果
+				flag=0;
+				LOOP:
+				while(!signa);
+				cout<<now<<"     "<<cnt<<"     "<<flag<<' '<<i<<' '<<page_up<<' '<<page_down<<endl;
+				//等待翻页信号
+				signa=0;
+				if(page_down){
+					cout<<"DOWN!!!"<<endl;
+					page_down=0;
+					if(now+5<=cnt){
+						for(int j=now;j<now+5;j++){
+							print_res(result[j]);
+						}
+						now+=5;
+						goto LOOP;
+					}
+				}
+				else if(page_up){
+					cout<<"UP!!!"<<endl;
+					page_up=0;
+					if(now==5)goto LOOP;
+					for(int j=now-10;j<now-5;j++){
+						print_res(result[j]);
+					}
+					now-=5;
+					goto LOOP;
+				}
+			}
+			if(match.match(data[x][i].filename)){
+				File tmp(data[x][i],x,disk+get_path(x,i));
+				cnt++,now++,flag++;
+				result.push_back(tmp);
+				print_res(tmp);
+			}
+		}
+	}
+}
 int main(){
 	admincheck();
 	bool is_first_run=check_local();//若本地文件不存在，则判定为首次运行
@@ -239,29 +309,60 @@ int main(){
 	else update_database();//先分析USN记录，记录要删除的文件再在读入时标记
 	update_info();
 	cout << "Totle Time : " << (double)clock() /CLOCKS_PER_SEC<< "s" << endl;
-	while(1){
-		puts("\n\n\n\n");
-		cout<<"Input any word to start searching\n";
-		match.read_reg(500,0);
-		string disk="C:\\",filepath;
-		for(int x=0;x<disk_num;x++,disk[0]++){
-			for(int i=0;i<data[x].size();i++){
-				if(match.match(data[x][i].filename)){
-					File tmp(data[x][i],x,disk+get_path(x,i));
-					cout<<"NAME: "<<tmp.filepath;
-					if(tmp.filesize!=-1)
-						cout<<"\nSIZE: "<<tmp.filesize<<"KB\n";
-					else cout<<'\n';
-					cout<<"Creat Time             Change Time            Access Time\n";
-					print_time(tmp.CreatT);
-					cout<<"    ";
-					print_time(tmp.WriteT);
-					cout<<"    ";
-					print_time(tmp.AccessT);
-					cout<<"\n\n";
-					//print("%")
-				}
-			}
-		}
-	}
+	//Sleep(1000);
+	system("cls");
+	register char c; 
+	cout<<"Input any word to start searching\n";
+	while(c=getch()){
+        if(c==8&&bufferlen!=-1){ //删除
+            con_buffer[bufferlen]='\0';
+            bufferlen--;
+            page=1;
+            //result.clear();
+            if(bufferlen==-1){
+            	system("cls");
+            	cout<<"Input any word to start searching\n";
+            	continue;
+            }
+        } 
+        else if(c==8&&bufferlen==-1){  //防止溢出
+            continue;
+        } 
+        else if(c==-32){
+        	char direction=getch();
+        	if(bufferlen==-1)continue;
+        	if(direction==80||direction==77){
+	        	system("cls");
+	        	printf("%s\n",con_buffer);
+        		cout<<"READ DOWN"<<endl;
+        		page++;
+        		page_down=1;
+        		cout<<"PAGE: "<<page<<endl;
+        	}
+        	else if(direction==72||direction==75){
+        		if(page!=1){
+        			system("cls");
+	        		printf("%s\n",con_buffer);
+	        		cout<<"READ UP"<<endl;
+        			page--;
+        			cout<<"PAGE: "<<page<<endl;
+        			page_up=1;
+        		}
+        	}
+        	signa=1;  //上面搞完了再通知
+        	continue;
+        }
+        else {
+        	con_buffer[++bufferlen]=c;
+        	page=1;
+        	//result.clear();
+        }
+    	not_type=1;      //让搜索进程停止
+        not_type=0;
+        system("cls");
+        printf("%s\n",con_buffer);
+        cout<<"PAGE: "<<page<<' '<<bufferlen<<endl;
+        thread task01(sear);
+        task01.detach();
+    }
 }
