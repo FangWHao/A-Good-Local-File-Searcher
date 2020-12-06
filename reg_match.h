@@ -707,6 +707,7 @@ void project::read_reg (int reg_max_size, bool switch_debug) {
 		DFA::debug();
 }
 bool project::read_reg (char *reg, bool switch_debug) {
+	project::clear();
 	if(NFA::read_reg(reg,0,strlen(reg)-1,0,1,true) == false)
 		return false;
 	if(switch_debug)
