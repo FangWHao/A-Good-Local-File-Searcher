@@ -14,6 +14,7 @@
 #include <vector>
 #include <deque>
 #include <fstream>
+#include <string>
 #include "file.h"
 using namespace std;
 #define BUF_LEN 4096
@@ -76,7 +77,7 @@ USN GET_MFT(string data_dst,string s,bool flag,vector<dat>&v)
 	DWORD usnDataSize;
 	PUSN_RECORD UsnRecord;
 	long long cnt = 0;
-	std::ofstream fout(data_dst, std::ios::binary);
+	ofstream fout(data_dst.c_str(), ios::binary);
 	while (0 != DeviceIoControl(hcj,
 								FSCTL_ENUM_USN_DATA,
 								&med,
@@ -143,7 +144,7 @@ USN GET_USN(const char* drvname,USN startUSN,bool flag,vector<int>&rm,vector<dat
 				char buffer[0x1000];
 				DWORD BytesReturned;
 				{
-					READ_USN_JOURNAL_DATA rujd = { startUSN, -1, 0, 0, 0, qujd.UsnJournalID };
+					READ_USN_JOURNAL_DATA rujd = { startUSN, 4294967295, 0, 0, 0, qujd.UsnJournalID };
 					for( ; DeviceIoControl(hVol,FSCTL_READ_USN_JOURNAL,&rujd,sizeof(rujd),buffer,_countof(buffer),&BytesReturned,NULL); rujd.StartUsn=*(USN*)&buffer )
 					{
 						DWORD dwRetBytes = BytesReturned - sizeof(USN);
