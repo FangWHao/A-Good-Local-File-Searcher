@@ -21,6 +21,14 @@ public:
 		filename=new char[l]; //深层复制
 		strcpy(filename,s);
 	}
+	dat(const dat &a){
+		len=a.len;
+		rnum=a.rnum;
+		prnum=a.prnum;
+		ppos=a.ppos;
+		filename=new char[len];
+		strcpy(filename,a.filename);
+	}
 };
 class File:public dat{
 public:
