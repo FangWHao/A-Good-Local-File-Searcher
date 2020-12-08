@@ -237,8 +237,211 @@ void print_res(const File& tmp){
 int signa=0,restart_searching=0;
 recursive_mutex mu; //线程互斥锁
 bool finished=0;
+bool port_searching = 0, unport_searching = 0;
 int cnt=0,now=0,flag=0;
-void sear(){
+void sear();
+thread task01(sear);
+void init_files() {
+	admincheck();
+	bool is_first_run=check_local();//若本地文件不存在，则判定为首次运行
+	/*初始化信息*/
+	//is_first_run=1;
+	//cin>>is_first_run;
+	if(is_first_run){
+		printf("This is your first run, program needs some time to initialize.\n");
+		printf("Scanning, please wait several minutes.\n");
+	}
+	else {//判定是否出现不合法信息，若出现则当作第一次运行处理
+		read_settings();//读入设置信息
+		read_info();    //读入USN64位ID和上次的最后一个USN
+		if(disk_num!=check_disk()){ //磁盘数量改变属于严重错误，应重新初始化
+			cout<<"Fatal Error:Change in disk number detected.\n";
+			is_first_run=1;
+		}
+		else {
+			check_info(); //检查每块磁盘的USN64位ID是否改变，若改变则更新一下
+		}
+	}
+	if(is_first_run)first_run();
+	else update_database();//先分析USN记录，记录要删除的文件再在读入时标记
+	update_info();
+	cout << "Totle Time : " << (double)clock() /CLOCKS_PER_SEC<< "s" << endl;
+	//Sleep(1000);
+	system("cls");
+	register char c; 
+	cout<<"Input any word to start searching\n";
+	/********************************************************/
+	//十分重要！首先要把搜索线程分离出去，不然会卡死！！！！！！！！
+
+    task01.detach();              //分离线程
+}
+
+/*******************************/
+//mainwindow.cpp
+/*******************************/
+
+const int INFO_MAX_SIZE = 256;
+const int FILTERS_MAX_SIZE = 256;
+class info {
+public:
+	void print();
+	void add_string(string adding_str);
+	void clear() { size = cur_pt = 0; }
+	int get_choice() {
+		if(cur_pt <= 0)
+			cur_pt = 1;
+		if(cur_pt >= size)
+			cur_pt = size;
+		return cur_pt; 
+	}
+	void operator += (int i) { cur_pt+=i; }
+	void operator -= (int i) { cur_pt-=i; }
+	int run();
+	info() { size = cur_pt = 0; }
+private:
+	int size, cur_pt;
+	string info_str[INFO_MAX_SIZE];
+} window_main, window_filters;
+void info::print() {
+	if(size == 0) {
+		puts("Error in info::print()");
+		return ;
+	}
+	if(cur_pt <= 0)
+		cur_pt = 1;
+	if(cur_pt >= size)
+		cur_pt = size;
+	for(int i=1;i<=size;i++) {
+		if(cur_pt == i)
+			putchar('>');
+		cout<<info_str[i];
+		if(cur_pt == i)
+			putchar('<');
+		putchar('\n');
+	}
+}
+void info::add_string(string adding_str) {
+	info_str[++size] = adding_str;
+}
+int info::run() {
+	char ch;
+	while(1) {
+		system("cls");
+		print();
+		ch = getch();
+		if(ch == '\n' || ch == '\r') 
+			return get_choice();
+		if(ch == 80 || ch == 77)
+			(*this)+=1;
+		if(ch == 72 || ch == 75)
+			(*this)-=1;
+	}
+}
+struct filter {
+/*
+	filter_type = 1. 忽略文件夹
+	filter_type = 2. 忽略文件
+	filter_type = 3. 屏蔽带有filter_str后缀的文件
+	filter_type = 4. 屏蔽filter_str文件目录下的所有文件
+	filter_type = 5. 只搜索filter_str文件目录下的文件
+*/
+	int filter_type;
+	string filter_str;
+	filter() { filter_type = 0; filter_str.clear(); }
+};
+class filters_package {
+public:
+	filter filters[FILTERS_MAX_SIZE];
+	int size;
+	void addfilter(int filter_type, string filter_str) {
+		if(filter_type == 5) {
+			for(int i=1;i<=size;i++) 
+				if(filters[i].filter_type == 5) {
+					filters[i].filter_str = filter_str;
+					return ;
+				}
+		}
+		filters[++size].filter_type = filter_type;
+		filters[size].filter_str = filter_str;
+	}
+	void addfilter(int filter_type) {
+		for(int i=1;i<=size;i++) 
+			if(filters[i].filter_type == filter_type) 
+				return ;
+		filters[++size].filter_type = filter_type;
+		filters[size].filter_str.clear();
+	}
+	void print() {
+		puts("Current Filters:");
+		if(size == 0)
+			puts("None!");
+		for(int i=1;i<=size;i++) 
+			switch(filters[i].filter_type) {
+				case 1: puts("Ignore folders.\n"); break;
+				case 2: puts("Ignore files.\n"); break;
+				case 3: cout<<"Ignore suffix: "<<filters[i].filter_str<<"\n\n"; break;
+				case 4: cout<<"Ignore path: "<<filters[i].filter_str<<"\n\n"; break;
+				case 5: cout<<"Searching path: "<<filters[i].filter_str<<"\n\n"; break;
+			}
+		getch();
+	}
+	bool match(File matching_file);
+	void clear() { size = 0; }
+	filters_package() { size = 0; }
+} filters;
+int get_public_suffix_length(string x,string y) {
+	int lenx = x.length(), leny = y.length();
+	for(int i=1, maxi = min(lenx,leny);i<=maxi;i++)
+		if(x[lenx-i] != y[leny-i])
+			return i-1;
+	return min(lenx,leny);
+}
+int get_public_suffix_length(char *x,string y) {
+	int lenx = strlen(x), leny = y.length();
+	for(int i=1, maxi = min(lenx,leny);i<=maxi;i++)
+		if(x[lenx-i] != y[leny-i])
+			return i-1;
+	return min(lenx,leny);
+}
+int get_public_prefix_length(string x,string y) {
+	int lenx = x.length(), leny = y.length();
+	for(int i=1, maxi = min(lenx,leny);i<=maxi;i++)
+		if(x[i-1] != y[i-1])
+			return i-1;
+	return min(lenx,leny);
+}
+bool filters_package::match(File matching_file) {
+	// cout<<matching_file.filepath<<' '<<matching_file.filename<<' '<<matching_file.filesize<<endl;
+	for(int i=1;i<=size;i++) {
+		if(filters[i].filter_type == 1) {
+			if(matching_file.filesize == -1ll)
+				return false;
+		}
+		else if(filters[i].filter_type == 2) {
+			if(matching_file.filesize != -1ll)
+				return false;
+		}
+		else if(filters[i].filter_type == 3) {
+			// cout<<"\n\n\n"<<get_public_suffix_length(matching_file.filename,filters[i].filter_str)<<' '<<filters[i].filter_str<<endl;
+			if(get_public_suffix_length(matching_file.filename,filters[i].filter_str) == filters[i].filter_str.length()) 
+				return false;
+		}
+		else if(filters[i].filter_type == 4) {
+			// cout<<"\n\n\n"<<get_public_prefix_length(matching_file.filepath,filters[i].filter_str)<<' '<<filters[i].filter_str<<endl;
+			if(get_public_prefix_length(matching_file.filepath,filters[i].filter_str) == filters[i].filter_str.length())
+				return false;
+		}
+		else {
+			if(get_public_prefix_length(matching_file.filepath,filters[i].filter_str) != filters[i].filter_str.length())
+				return false;
+		}
+	}
+	return true;
+}
+void sear() {
+	PORT:
+	cout<<"PORTED"<<endl;
+	while(!unport_searching);
 	FINISH:
 	cout<<"FINISHED"<<endl;
 	while(!restart_searching);
@@ -257,12 +460,21 @@ void sear(){
 				if(restart_searching){
 					goto RESTART;
 				}
+				if(port_searching) {
+					goto PORT;
+				}
 				if(flag==5||signa||restart_searching){  //如果目前已经输出五条结果
 					if(flag==5)flag=0;
 					LOOP:
+					if(port_searching) {
+						goto PORT;
+					}
 					while((!signa)&&(!restart_searching));
 					if(restart_searching){
 						goto RESTART;
+					}
+					if(port_searching) {
+						goto PORT;
 					}
 					//if(mu.try_lock())mu.unlock();
 					//cout<<"Locked"<<endl;
@@ -302,9 +514,11 @@ void sear(){
 				}
 				if(match.match(data[x][i].filename)){
 					File tmp(data[x][i],x,disk+get_path(x,i));
-					cnt++,now++,flag++;
-					result.push_back(tmp);
-					print_res(tmp);
+					if(filters.match(tmp)) {
+						cnt++,now++,flag++;
+						result.push_back(tmp);
+						print_res(tmp);
+					}
 				}
 			//}
 		}
@@ -312,41 +526,14 @@ void sear(){
 	finished=1;
 	goto FINISH;//万一搜索完了就返回第一行，不能退出！
 }
-int main(){
-	admincheck();
-	bool is_first_run=check_local();//若本地文件不存在，则判定为首次运行
-	/*初始化信息*/
-	//is_first_run=1;
-	//cin>>is_first_run;
-	if(is_first_run){
-		printf("This is your first run, program needs some time to initialize.\n");
-		printf("Scanning, please wait several minutes.\n");
-	}
-	else {//判定是否出现不合法信息，若出现则当作第一次运行处理
-		read_settings();//读入设置信息
-		read_info();    //读入USN64位ID和上次的最后一个USN
-		if(disk_num!=check_disk()){ //磁盘数量改变属于严重错误，应重新初始化
-			cout<<"Fatal Error:Change in disk number detected.\n";
-			is_first_run=1;
-		}
-		else {
-			check_info(); //检查每块磁盘的USN64位ID是否改变，若改变则更新一下
-		}
-	}
-	if(is_first_run)first_run();
-	else update_database();//先分析USN记录，记录要删除的文件再在读入时标记
-	update_info();
-	cout << "Totle Time : " << (double)clock() /CLOCKS_PER_SEC<< "s" << endl;
-	//Sleep(1000);
-	system("cls");
-	register char c; 
-	cout<<"Input any word to start searching\n";
-	/********************************************************/
-	//十分重要！首先要把搜索线程分离出去，不然会卡死！！！！！！！！
-	thread task01(sear);          //新建线程
-    task01.detach();              //分离线程
+void start_searching() {
+	port_searching = 0;
+	unport_searching = 1;
+	char c;
 	while(c=getch()){ //删除操作
 		bool is_changed=0;
+		if(c==27) //退出
+			break;
         if(c==8&&bufferlen!=-1){ //删除
             con_buffer[bufferlen]='\0';
             bufferlen--;
@@ -442,4 +629,67 @@ int main(){
         //if(is_changed)result.clear();
         //stop_searching=0;
     }
+	unport_searching = 0;
+	port_searching = 1;
 }
+void set_searching_filter() {
+	int window_result;
+	string tmp;
+	while(1) {
+		window_result = window_filters.run();
+		if(window_result == 1 || window_result == 2)
+			filters.addfilter(window_result);
+		else if(window_result == 3 || window_result == 4 || window_result == 5) {
+			puts("Please input the corresponding string..");
+			cin>>tmp;
+			filters.addfilter(window_result,tmp);
+		}
+		else if(window_result == 6) 
+			filters.clear();
+		else
+			return ;
+		filters.print();
+	}
+}
+void other_settings() {
+	
+}
+void init_windows() {
+	// main window: 
+	window_main.add_string("Start Searching");
+	window_main.add_string("Set Searching Fliter");
+	window_main.add_string("Other Settings");
+	window_main.add_string("Quit");
+	window_filters.add_string("Ignore Folders");
+	window_filters.add_string("Ignore Files");
+	window_filters.add_string("Ignore a Specific Suffix");
+	window_filters.add_string("Ignore a Specific Path");
+	window_filters.add_string("Only search in a Specific Path(will cover the last filter!)");
+	window_filters.add_string("Erase all");
+	window_filters.add_string("Back");
+}
+void mainwindow() {
+	int window_result;
+	while(1) {
+		window_result = window_main.run();
+		switch(window_result) {
+			case 1: start_searching(); break;
+			case 2: set_searching_filter(); break;
+			case 3: other_settings(); break;
+			default:
+				return ;
+		}
+	}
+}
+
+signed main() {
+	// string a,b;while(1)
+	// cin>>a>>b,
+	// cout<<get_public_suffix_length(a,b)<<' '<<get_public_prefix_length(a,b)<<endl;
+
+
+	init_windows();
+	init_files();
+	mainwindow();
+}
+
