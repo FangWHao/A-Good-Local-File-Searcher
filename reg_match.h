@@ -487,10 +487,21 @@ bool DFA::match (char *str) {
 	if(is_end[current]) //DFA是空的 
 		return true;
 	for(int i=0;i<len;i++) {
-		if(lnk[current][str[i]] == 0) //如果符号未定义则走else包 
-			current = lnk[current][('\1')];
-		else
-			current = lnk[current][str[i]]; //沿边行进 
+		if(str[i] < 0) { //检测到中文 
+			if(lnk[current][str[i]] == 0) //中文不匹配，走else包 
+				current = lnk[current][('\1')];
+			else if(lnk[lnk[current][str[i]]][str[i+1]] == 0) //中文还不匹配，继续走else包 
+				current = lnk[current][('\1')];
+			else
+				current = lnk[lnk[current][str[i]]][str[i+1]];//中文沿边行进 
+			i++;//中文有两个字符 
+		}
+		else {
+			if(lnk[current][str[i]] == 0) //如果符号未定义则走else包 
+				current = lnk[current][('\1')];
+			else
+				current = lnk[current][str[i]]; //沿边行进 
+		}
 	}
 	return is_end[current]; //必须在最后时刻成功跑掉 
 }
@@ -707,6 +718,7 @@ void project::read_reg (int reg_max_size, bool switch_debug) {
 		DFA::debug();
 }
 bool project::read_reg (char *reg, bool switch_debug) {
+	project::clear();
 	if(NFA::read_reg(reg,0,strlen(reg)-1,0,1,true) == false)
 		return false;
 	if(switch_debug)
