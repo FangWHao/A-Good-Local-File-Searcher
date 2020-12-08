@@ -235,7 +235,7 @@ void print_res(const File& tmp){
 	cout<<"\n\n";
 }
 int signa=0;
-mutex mu;
+recursive_mutex mu; //线程互斥锁
 void sear(){
 	int cnt=0,now=0,flag=0;
 	if((int)con_buffer[0]==0)return;
@@ -249,38 +249,56 @@ void sear(){
 			if(flag==5){  //输出五条结果
 				flag=0;
 				LOOP:
-				while(!signa);
-				cout<<now<<"     "<<cnt<<"     "<<flag<<' '<<i<<' '<<page_up<<' '<<page_down<<endl;
-				//等待翻页信号
+				//mu.unlock();
+				while(!signa){
+					//if(mu.try_lock())
+					//mu.unlock();
+				}
+				//if(mu.try_lock())mu.unlock();
+				//cout<<"Locked"<<endl;
+				mu.lock();  //锁就是了，管tm的解锁，能跑就行
+				//cout<<mu.try_lock();
 				signa=0;
+				//cout<<"DEBUG  "<<now<<"     "<<cnt<<"     "<<flag<<' '<<i<<' '<<page_up<<' '<<page_down<<endl;
+				//Sleep(1000);
+				//等待翻页信号
 				if(page_down){
-					cout<<"DOWN!!!"<<endl;
 					page_down=0;
+					//mu.unlock();
+					//cout<<"DOWN!!!"<<endl;
 					if(now+5<=cnt){
+						mu.lock();
 						for(int j=now;j<now+5;j++){
 							print_res(result[j]);
 						}
 						now+=5;
+						//mu.unlock();
 						goto LOOP;
 					}
 				}
 				else if(page_up){
-					cout<<"UP!!!"<<endl;
+					//cout<<"UP!!!"<<endl;
 					page_up=0;
+					//mu.unlock();
 					if(now==5)goto LOOP;
+					mu.lock();
 					for(int j=now-10;j<now-5;j++){
 						print_res(result[j]);
 					}
 					now-=5;
+					//mu.unlock();
 					goto LOOP;
 				}
 			}
+			//mu.unlock();
+			//mu.lock();
 			if(match.match(data[x][i].filename)){
 				File tmp(data[x][i],x,disk+get_path(x,i));
 				cnt++,now++,flag++;
 				result.push_back(tmp);
 				print_res(tmp);
 			}
+			//mu.unlock();
 		}
 	}
 }
@@ -313,56 +331,73 @@ int main(){
 	system("cls");
 	register char c; 
 	cout<<"Input any word to start searching\n";
-	while(c=getch()){
+	while(c=getch()){ //删除操作
+		bool is_changed=0;
         if(c==8&&bufferlen!=-1){ //删除
             con_buffer[bufferlen]='\0';
             bufferlen--;
             page=1;
-            //result.clear();
+            if(bufferlen>=0){ //中文类型需要特殊判断，完整删除两个ASCII
+            	if(con_buffer[bufferlen]<0){
+            		con_buffer[bufferlen]='\0';
+           		 	bufferlen--;
+            	}
+            }
             if(bufferlen==-1){
             	system("cls");
             	cout<<"Input any word to start searching\n";
             	continue;
             }
+            else is_changed=1;
         } 
         else if(c==8&&bufferlen==-1){  //防止溢出
             continue;
         } 
-        else if(c==-32){
+        else if(c==-32){//翻页操作
         	char direction=getch();
         	if(bufferlen==-1)continue;
-        	if(direction==80||direction==77){
+        	if(direction==80||direction==77){//向下翻页
 	        	system("cls");
-	        	printf("%s\n",con_buffer);
-        		cout<<"READ DOWN"<<endl;
+	        	//printf("%s\n",con_buffer);
+	        	cout<<con_buffer<<endl;
+        		//cout<<"READ DOWN"<<endl;
         		page++;
         		page_down=1;
         		cout<<"PAGE: "<<page<<endl;
         	}
-        	else if(direction==72||direction==75){
+        	else if(direction==72||direction==75){ //向上翻页
         		if(page!=1){
         			system("cls");
-	        		printf("%s\n",con_buffer);
-	        		cout<<"READ UP"<<endl;
+        			cout<<con_buffer<<endl;
+	        		//printf("%s\n",con_buffer);
+	        		//cout<<"READ UP"<<endl;
         			page--;
         			cout<<"PAGE: "<<page<<endl;
         			page_up=1;
         		}
+        		else continue;
         	}
         	signa=1;  //上面搞完了再通知
         	continue;
         }
-        else {
+        else {  //更新关键字重新搜索
         	con_buffer[++bufferlen]=c;
         	page=1;
-        	//result.clear();
+        	is_changed=1;
+        	if(c<0){
+        		c=getch();
+        		con_buffer[++bufferlen]=c;
+        	}
         }
     	not_type=1;      //让搜索进程停止
+        if(is_changed)result.clear();
         not_type=0;
         system("cls");
-        printf("%s\n",con_buffer);
-        cout<<"PAGE: "<<page<<' '<<bufferlen<<endl;
+        //printf("%s\n",con_buffer);
+        cout<<con_buffer<<endl;
+        cout<<"PAGE: "<<page<<endl;
         thread task01(sear);
         task01.detach();
+        Sleep(50);//Sleep一下
     }
 }
