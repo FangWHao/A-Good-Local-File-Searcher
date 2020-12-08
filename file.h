@@ -70,6 +70,7 @@ void print_time(FILETIME ftime){
     memset(str,0,50);
     FileTimeToLocalFileTime(&ftime,&ltime);
     FileTimeToSystemTime(&ltime,&rtime);        //将文件时间转化为系统时间
+    //cout<<rtime.wYear<<' '<<rtime.wMonth;
     sprintf(str, "%04u-%02u-%02u %02u:%02u:%02u",rtime.wYear, rtime.wMonth, rtime.wDay, rtime.wHour, rtime.wMinute, rtime.wSecond);
     printf("%s",str);
 }
