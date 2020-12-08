@@ -30,7 +30,7 @@ vector<dat>data[30],tmp_dat,crt,rnm;//保存的文件所有信息，创建的文
 vector<string>new_name;//保存一个被重命名文件的最终名字
 vector<File>result;
 bool removed[MAXN],exist[MAXN];//标记是否被删除，是否已经存在
-bool not_type=1,page_down=0,page_up=0;//无键盘事件
+bool stop_searching=1,page_down=0,page_up=0;//无键盘事件
 int renamed[MAXN];//被重命名的文件的USN编号->new_name中的编号
 char con_buffer[10000];
 int bufferlen=-1;
@@ -234,73 +234,83 @@ void print_res(const File& tmp){
 	print_time(tmp.AccessT);
 	cout<<"\n\n";
 }
-int signa=0;
+int signa=0,restart_searching=0;
 recursive_mutex mu; //线程互斥锁
+bool finished=0;
+int cnt=0,now=0,flag=0;
 void sear(){
-	int cnt=0,now=0,flag=0;
-	if((int)con_buffer[0]==0)return;
+	FINISH:
+	cout<<"FINISHED"<<endl;
+	while(!restart_searching);
+	finished=0;
+	RESTART:
+	cout<<"RESTART"<<endl;
+	restart_searching=0;
+	result.clear(); //清空一下现有的结果
+	//if((int)con_buffer[0]==0)return;
 	match.read_reg(con_buffer,0);
 	string disk="C:\\",filepath;
 	for(int x=0;x<disk_num;x++,disk[0]++){
 		for(int i=0;i<data[x].size();i++){
-			if(not_type){
-				return; //等待输入信号
-			}
-			if(flag==5){  //输出五条结果
-				flag=0;
-				LOOP:
-				//mu.unlock();
-				while(!signa){
-					//if(mu.try_lock())
-					//mu.unlock();
+			//if(stop_searching){//等待输入信号
+				stop_searching=0;
+				if(restart_searching){
+					goto RESTART;
 				}
-				//if(mu.try_lock())mu.unlock();
-				//cout<<"Locked"<<endl;
-				mu.lock();  //锁就是了，管tm的解锁，能跑就行
-				//cout<<mu.try_lock();
-				signa=0;
-				//cout<<"DEBUG  "<<now<<"     "<<cnt<<"     "<<flag<<' '<<i<<' '<<page_up<<' '<<page_down<<endl;
-				//Sleep(1000);
-				//等待翻页信号
-				if(page_down){
-					page_down=0;
-					//mu.unlock();
-					//cout<<"DOWN!!!"<<endl;
-					if(now+5<=cnt){
-						mu.lock();
-						for(int j=now;j<now+5;j++){
+				if(flag==5||signa||restart_searching){  //如果目前已经输出五条结果
+					if(flag==5)flag=0;
+					LOOP:
+					while((!signa)&&(!restart_searching));
+					if(restart_searching){
+						goto RESTART;
+					}
+					//if(mu.try_lock())mu.unlock();
+					//cout<<"Locked"<<endl;
+					//mu.lock();  //锁就是了，管tm的解锁，能跑就行
+					cout<<"SIGNAL!"<<endl;
+					signa=0;
+					//cout<<"DEBUG  "<<now<<"     "<<cnt<<"     "<<flag<<' '<<i<<' '<<page_up<<' '<<page_down<<endl;
+					//Sleep(1000);
+					//等待翻页信号
+					if(page_down){
+						page_down=0;
+						cout<<"DOWN!!!"<<endl;
+						if(now+5<=cnt){
+							for(int j=now;j<now+5;j++){
+								print_res(result[j]);
+							}
+							now+=5;
+							goto LOOP;
+						}
+						cout<<"DEBUG"<<endl;
+					}
+					else if(page_up){
+						//cout<<"UP!!!"<<endl;
+						cout<<now<<' '<<cnt<<endl;
+						page_up=0;
+						if(now==5)goto LOOP;
+						for(int j=now-10;j<now-5;j++){
 							print_res(result[j]);
 						}
-						now+=5;
-						//mu.unlock();
+						now-=5;
 						goto LOOP;
 					}
-				}
-				else if(page_up){
-					//cout<<"UP!!!"<<endl;
-					page_up=0;
-					//mu.unlock();
-					if(now==5)goto LOOP;
-					mu.lock();
-					for(int j=now-10;j<now-5;j++){
-						print_res(result[j]);
+					else if(restart_searching){
+						restart_searching=0;
+						goto RESTART;
 					}
-					now-=5;
-					//mu.unlock();
-					goto LOOP;
 				}
-			}
-			//mu.unlock();
-			//mu.lock();
-			if(match.match(data[x][i].filename)){
-				File tmp(data[x][i],x,disk+get_path(x,i));
-				cnt++,now++,flag++;
-				result.push_back(tmp);
-				print_res(tmp);
-			}
-			//mu.unlock();
+				if(match.match(data[x][i].filename)){
+					File tmp(data[x][i],x,disk+get_path(x,i));
+					cnt++,now++,flag++;
+					result.push_back(tmp);
+					print_res(tmp);
+				}
+			//}
 		}
 	}
+	finished=1;
+	goto FINISH;//万一搜索完了就返回第一行，不能退出！
 }
 int main(){
 	admincheck();
@@ -331,6 +341,10 @@ int main(){
 	system("cls");
 	register char c; 
 	cout<<"Input any word to start searching\n";
+	/********************************************************/
+	//十分重要！首先要把搜索线程分离出去，不然会卡死！！！！！！！！
+	thread task01(sear);          //新建线程
+    task01.detach();              //分离线程
 	while(c=getch()){ //删除操作
 		bool is_changed=0;
         if(c==8&&bufferlen!=-1){ //删除
@@ -343,12 +357,19 @@ int main(){
            		 	bufferlen--;
             	}
             }
-            if(bufferlen==-1){
+            if(bufferlen==-1){//删干净了
+            	page=1;
             	system("cls");
             	cout<<"Input any word to start searching\n";
             	continue;
             }
-            else is_changed=1;
+            else {
+            	page=1;
+            	system("cls");
+            	cout<<con_buffer<<endl;
+            	cout<<"PAGE: "<<page<<endl;
+            	restart_searching=1;
+            }
         } 
         else if(c==8&&bufferlen==-1){  //防止溢出
             continue;
@@ -361,18 +382,42 @@ int main(){
 	        	//printf("%s\n",con_buffer);
 	        	cout<<con_buffer<<endl;
         		//cout<<"READ DOWN"<<endl;
-        		page++;
+        		if(finished){
+        			if(now==cnt)continue;
+        			if(now+5>=cnt){
+        				page++;
+        				cout<<"PAGE: "<<page<<endl;
+        				for(int i=now;i<cnt;i++){
+        					print_res(result[i]);
+        				}
+        			}
+        			else {
+        				page++;
+        				for(int i=now;i<now+5;i++){
+        					print_res(result[i]);
+        				}
+        				now+=5;
+        			}
+        			continue;
+        		}
         		page_down=1;
-        		cout<<"PAGE: "<<page<<endl;
         	}
         	else if(direction==72||direction==75){ //向上翻页
+        		//cout<<"fuck "<<finished<<endl;
         		if(page!=1){
-        			system("cls");
+        			//system("cls");
         			cout<<con_buffer<<endl;
 	        		//printf("%s\n",con_buffer);
 	        		//cout<<"READ UP"<<endl;
         			page--;
         			cout<<"PAGE: "<<page<<endl;
+        			if(finished){
+        				for(int i=now-10;i<now-5;i++){
+							print_res(result[i]);
+						}
+						now-=5;
+						continue;
+        			}
         			page_up=1;
         		}
         		else continue;
@@ -383,21 +428,18 @@ int main(){
         else {  //更新关键字重新搜索
         	con_buffer[++bufferlen]=c;
         	page=1;
-        	is_changed=1;
         	if(c<0){
         		c=getch();
         		con_buffer[++bufferlen]=c;
         	}
+        	system("cls");
+        	cout<<con_buffer<<endl;
+        	cout<<"PAGE: "<<page<<endl;
+        	restart_searching=1;
+        	is_changed=1;
         }
-    	not_type=1;      //让搜索进程停止
-        if(is_changed)result.clear();
-        not_type=0;
-        system("cls");
-        //printf("%s\n",con_buffer);
-        cout<<con_buffer<<endl;
-        cout<<"PAGE: "<<page<<endl;
-        thread task01(sear);
-        task01.detach();
-        Sleep(50);//Sleep一下
+    	//stop_searching=1;      //让搜索进程停止
+        //if(is_changed)result.clear();
+        //stop_searching=0;
     }
 }
