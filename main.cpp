@@ -17,6 +17,7 @@
 #include "USN.h"
 #include "reg_match.h"
 #include "file.h"
+#include "screen_settings.h"
 using namespace std;
 #define ull unsigned long long
 #define MAXN 10000000
@@ -230,6 +231,10 @@ string get_path(int x,int pos){
 	return path;
 }
 void print_res(const File& tmp){
+	if(tmp.filesize == -1)
+		SetColor(0xB,0);
+	else 
+		SetColor(0xF,0);
 	cout<<"NAME: "<<tmp.filepath;
 	if(tmp.filesize!=-1)
 	cout<<"\nSIZE: "<<tmp.filesize<<"KB\n";
@@ -241,6 +246,7 @@ void print_res(const File& tmp){
 	cout<<"    ";
 	print_time(tmp.AccessT);
 	cout<<"\n\n";
+	SetColor(0xF,0);
 }
 int restart_searching=0; //是否有字符的变化
 recursive_mutex mu; //线程互斥锁
@@ -296,6 +302,7 @@ public:
 	void print();
 	void add_string(string adding_str);
 	void clear() { size = cur_pt = 0; }
+	void setPos(int Posx, int Posy) { posx = Posx; posy = Posy; }
 	int get_choice() {
 		if(cur_pt <= 0)
 			cur_pt = 1;
@@ -306,9 +313,9 @@ public:
 	void operator += (int i) { cur_pt+=i; }
 	void operator -= (int i) { cur_pt-=i; }
 	int run();
-	info() { size = cur_pt = 0; }
+	info() { size = cur_pt = posx = posy = 0; }
 private:
-	int size, cur_pt;
+	int size, cur_pt, posx, posy;
 	string info_str[INFO_MAX_SIZE];
 } window_main, window_filters;
 void info::print() {
@@ -321,6 +328,7 @@ void info::print() {
 	if(cur_pt >= size)
 		cur_pt = size;
 	for(int i=1;i<=size;i++) {
+		SetPos(posx, posy+i-1);
 		if(cur_pt == i)
 			putchar('>');
 		cout<<info_str[i];
@@ -464,7 +472,7 @@ void sear(){
 	page_now=1,page_tot=0;
 	new_result=0;
 	/***************************/
-	if(!match.read_reg(con_buffer,1)) 
+	if(!match.read_reg(con_buffer,0)) 
 		goto FINISH;
 	string disk="C:\\",filepath;
 	for(int x=0;x<disk_num;x++,disk[0]++){
@@ -501,9 +509,12 @@ void start_searching() {
 	port_searching = 0;
 	unport_searching = 1;
 	char c;
-	while(c=getch()){ //删除操作
+	page=1;
+    system("cls");
+	cout<<"Input any word to start searching\n";
+	while(c=getch()) { //删除操作
 		bool is_changed=0;
-        if(c==8&&bufferlen!=-1){ //删除
+        if(c==8&&bufferlen!=-1) { //删除
             con_buffer[bufferlen]='\0';
             bufferlen--;
             page=1;
@@ -598,11 +609,15 @@ void other_settings() {
 	
 }
 void init_windows() {
+	SetSize(75,34);
+	HideConsoleCursor();
 	// main window: 
 	window_main.add_string("Start Searching");
 	window_main.add_string("Set Searching Fliter");
 	window_main.add_string("Other Settings");
 	window_main.add_string("Quit");
+	window_main.setPos(30, 14);
+	// filters settings window:
 	window_filters.add_string("Ignore Folders");
 	window_filters.add_string("Ignore Files");
 	window_filters.add_string("Ignore a Specific Suffix");
@@ -610,6 +625,7 @@ void init_windows() {
 	window_filters.add_string("Only search in a Specific Path(will cover the last filter!)");
 	window_filters.add_string("Erase all");
 	window_filters.add_string("Back");
+	window_filters.setPos(30, 13);
 }
 void mainwindow() {
 	int window_result;
