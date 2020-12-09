@@ -30,11 +30,19 @@ vector<dat>data[30],tmp_dat,crt,rnm;//保存的文件所有信息，创建的文
 vector<string>new_name;//保存一个被重命名文件的最终名字
 vector<File>result;
 bool removed[MAXN],exist[MAXN];//标记是否被删除，是否已经存在
-bool stop_searching=1,page_down=0,page_up=0;//无键盘事件
 int renamed[MAXN];//被重命名的文件的USN编号->new_name中的编号
 char con_buffer[10000];
 int bufferlen=-1;
+extern int rpp=5;//result per page
 project match;
+struct Page{
+	int l,r;
+	Page(){
+		l=0,r=0;
+	}
+	Page(int l,int r):l(l),r(r){}
+};
+vector<Page>pa;
 void exit()
 {
 	printf("Press any key to exit");
@@ -234,11 +242,12 @@ void print_res(const File& tmp){
 	print_time(tmp.AccessT);
 	cout<<"\n\n";
 }
-int signa=0,restart_searching=0;
+int restart_searching=0; //是否有字符的变化
 recursive_mutex mu; //线程互斥锁
 bool finished=0;
 bool port_searching = 0, unport_searching = 0;
-int cnt=0,now=0,flag=0;
+int cnt=0,on_screen=0,new_result=0;//总结果数，屏幕上的结果数
+int page_tot=0,page_now=1;  //总页数，当前页
 void sear();
 thread task01(sear);
 void init_files() {
@@ -438,92 +447,53 @@ bool filters_package::match(File matching_file) {
 	}
 	return true;
 }
-void sear() {
+void sear(){
 	PORT:
-	cout<<"PORTED"<<endl;
 	while(!unport_searching);
 	FINISH:
-	cout<<"FINISHED"<<endl;
-	while(!restart_searching);
-	finished=0;
+	//cout<<"FINISHED"<<endl;
+	while(!restart_searching); //开始时等待信号
 	RESTART:
-	cout<<"RESTART"<<endl;
+	//cout<<"RESTART"<<endl;
+	/**********初始化************/
 	restart_searching=0;
 	result.clear(); //清空一下现有的结果
-	//if((int)con_buffer[0]==0)return;
+	pa.clear();//清空现有的页码记录
+	pa.emplace_back(0,0);//从1开始
+	cnt=0,on_screen=0;
+	page_now=1,page_tot=0;
+	new_result=0;
+	/***************************/
 	match.read_reg(con_buffer,0);
 	string disk="C:\\",filepath;
 	for(int x=0;x<disk_num;x++,disk[0]++){
 		for(int i=0;i<data[x].size();i++){
-			//if(stop_searching){//等待输入信号
-				stop_searching=0;
-				if(restart_searching){
-					goto RESTART;
-				}
-				if(port_searching) {
-					goto PORT;
-				}
-				if(flag==5||signa||restart_searching){  //如果目前已经输出五条结果
-					if(flag==5)flag=0;
-					LOOP:
-					if(port_searching) {
-						goto PORT;
-					}
-					while((!signa)&&(!restart_searching));
-					if(restart_searching){
-						goto RESTART;
-					}
-					if(port_searching) {
-						goto PORT;
-					}
-					//if(mu.try_lock())mu.unlock();
-					//cout<<"Locked"<<endl;
-					//mu.lock();  //锁就是了，管tm的解锁，能跑就行
-					cout<<"SIGNAL!"<<endl;
-					signa=0;
-					//cout<<"DEBUG  "<<now<<"     "<<cnt<<"     "<<flag<<' '<<i<<' '<<page_up<<' '<<page_down<<endl;
-					//Sleep(1000);
-					//等待翻页信号
-					if(page_down){
-						page_down=0;
-						cout<<"DOWN!!!"<<endl;
-						if(now+5<=cnt){
-							for(int j=now;j<now+5;j++){
-								print_res(result[j]);
-							}
-							now+=5;
-							goto LOOP;
-						}
-						cout<<"DEBUG"<<endl;
-					}
-					else if(page_up){
-						//cout<<"UP!!!"<<endl;
-						cout<<now<<' '<<cnt<<endl;
-						page_up=0;
-						if(now==5)goto LOOP;
-						for(int j=now-10;j<now-5;j++){
-							print_res(result[j]);
-						}
-						now-=5;
-						goto LOOP;
-					}
-					else if(restart_searching){
-						restart_searching=0;
-						goto RESTART;
-					}
-				}
-				if(match.match(data[x][i].filename)){
-					File tmp(data[x][i],x,disk+get_path(x,i));
-					if(filters.match(tmp)) {
-						cnt++,now++,flag++;
-						result.push_back(tmp);
-						print_res(tmp);
-					}
-				}
-			//}
+			if(restart_searching){  //每次判断是否有字符的增加或删除，若有，则重新搜索
+				goto RESTART;
+			}
+			if(port_searching) {
+				goto PORT;
+			}
+			if(new_result==rpp){ //第一次输出特殊判断一下
+				new_result=0;
+				page_tot++;
+				pa.emplace_back(cnt-rpp,cnt);
+			}
+			if(match.match(data[x][i].filename)){
+				File tmp(data[x][i],x,disk+get_path(x,i));
+				if(!filters.match(tmp))continue;
+				cnt++;
+				result.push_back(tmp);
+				if(on_screen<rpp)print_res(tmp);
+				on_screen++;
+				new_result++;
+			}
 		}
 	}
-	finished=1;
+	if(cnt!=pa[page_tot].r){ //最后一页可能有不完整的结果，特殊判断
+		page_tot++;
+		pa.emplace_back(pa[page_tot-1].r,cnt);
+	}
 	goto FINISH;//万一搜索完了就返回第一行，不能退出！
 }
 void start_searching() {
@@ -532,8 +502,6 @@ void start_searching() {
 	char c;
 	while(c=getch()){ //删除操作
 		bool is_changed=0;
-		if(c==27) //退出
-			break;
         if(c==8&&bufferlen!=-1){ //删除
             con_buffer[bufferlen]='\0';
             bufferlen--;
@@ -565,71 +533,45 @@ void start_searching() {
         	char direction=getch();
         	if(bufferlen==-1)continue;
         	if(direction==80||direction==77){//向下翻页
-	        	system("cls");
-	        	//printf("%s\n",con_buffer);
-	        	cout<<con_buffer<<endl;
-        		//cout<<"READ DOWN"<<endl;
-        		if(finished){
-        			if(now==cnt)continue;
-        			if(now+5>=cnt){
-        				page++;
-        				cout<<"PAGE: "<<page<<endl;
-        				for(int i=now;i<cnt;i++){
-        					print_res(result[i]);
-        				}
-        			}
-        			else {
-        				page++;
-        				for(int i=now;i<now+5;i++){
-        					print_res(result[i]);
-        				}
-        				now+=5;
+        		if(page_now==page_tot)continue; //当前是最后一页时忽略该命令
+        		else{   //翻页操作
+        			page_now++;
+        			system("cls");
+        			cout<<con_buffer<<endl;
+        			cout<<"PAGE: "<<page_now<<endl;
+        			for(int i=pa[page_now].l;i<pa[page_now].r;i++){
+        				print_res(result[i]);
         			}
         			continue;
         		}
-        		page_down=1;
         	}
         	else if(direction==72||direction==75){ //向上翻页
-        		//cout<<"fuck "<<finished<<endl;
-        		if(page!=1){
-        			//system("cls");
+        		if(page_now!=1){ //当前页不是第一页才能执行翻页操作
+        			system("cls");
         			cout<<con_buffer<<endl;
-	        		//printf("%s\n",con_buffer);
-	        		//cout<<"READ UP"<<endl;
-        			page--;
-        			cout<<"PAGE: "<<page<<endl;
-        			if(finished){
-        				for(int i=now-10;i<now-5;i++){
-							print_res(result[i]);
-						}
-						now-=5;
-						continue;
-        			}
-        			page_up=1;
+        			page_now--;
+        			cout<<"PAGE: "<<page_now<<endl;
+        			for(int i=pa[page_now].l;i<pa[page_now].r;i++){
+						print_res(result[i]);
+					}
         		}
-        		else continue;
+        		else continue; //当前是第一页时忽略翻页操作
         	}
-        	signa=1;  //上面搞完了再通知
-        	continue;
         }
         else {  //更新关键字重新搜索
         	con_buffer[++bufferlen]=c;
-        	page=1;
-        	if(c<0){
+        	page_now=1;
+        	if(c<0){  //若当前输入的是中文，要同时读进两个字符，减少bug可能
         		c=getch();
         		con_buffer[++bufferlen]=c;
         	}
         	system("cls");
         	cout<<con_buffer<<endl;
-        	cout<<"PAGE: "<<page<<endl;
+        	cout<<"PAGE: "<<page_now<<endl;
         	restart_searching=1;
-        	is_changed=1;
         }
-    	//stop_searching=1;      //让搜索进程停止
-        //if(is_changed)result.clear();
-        //stop_searching=0;
     }
-	unport_searching = 0;
+    unport_searching = 0;
 	port_searching = 1;
 }
 void set_searching_filter() {
