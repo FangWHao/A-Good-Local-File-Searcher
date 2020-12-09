@@ -464,7 +464,8 @@ void sear(){
 	page_now=1,page_tot=0;
 	new_result=0;
 	/***************************/
-	match.read_reg(con_buffer,0);
+	if(!match.read_reg(con_buffer,1)) 
+		goto FINISH;
 	string disk="C:\\",filepath;
 	for(int x=0;x<disk_num;x++,disk[0]++){
 		for(int i=0;i<data[x].size();i++){
