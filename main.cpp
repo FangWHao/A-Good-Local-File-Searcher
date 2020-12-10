@@ -14,6 +14,8 @@
 #include <thread>
 #include <conio.h>
 #include <mutex>
+#include <shellapi.h>
+#include <tchar.h>
 #include "USN.h"
 #include "reg_match.h"
 #include "file.h"
@@ -34,7 +36,7 @@ vector<string>egg;
 bool removed[MAXN],exist[MAXN];//标记是否被删除，是否已经存在
 int renamed[MAXN];//被重命名的文件的USN编号->new_name中的编号
 char con_buffer[10000];
-int bufferlen=-1;
+int bufferlen=-1,now_result=0;
 extern int rpp=5;//result per page
 project match;
 struct Page{
@@ -45,6 +47,7 @@ struct Page{
 	Page(int l,int r):l(l),r(r){}
 };
 vector<Page>pa;
+void mainwindow();
 void read_egg(){
 	srand(time(0));
 	string tmp;
@@ -258,8 +261,11 @@ string get_path(int x,int pos){
 	}
 	return path;
 }
-void print_res(const File& tmp){
-	if(tmp.filesize == -1)
+void print_res(const File& tmp,bool selected=0){
+	if(selected==1){
+		SetColor(0x02,0);
+	}
+	else if(tmp.filesize == -1)
 		SetColor(0xB,0);
 	else
 		SetColor(0xF,0);
@@ -490,9 +496,8 @@ bool filters_package::match(File matching_file) {
 	}
 	return true;
 }
+bool return_to_main=0;
 void sear(){
-	PORT:
-	while(!unport_searching);
 	FINISH:
 	//cout<<"FINISHED"<<endl;
 	while(!restart_searching); //开始时等待信号
@@ -515,8 +520,9 @@ void sear(){
 			if(restart_searching){  //每次判断是否有字符的增加或删除，若有，则重新搜索
 				goto RESTART;
 			}
-			if(port_searching) {
-				goto PORT;
+			if(return_to_main){
+				return_to_main=0; //返回主界面
+				goto FINISH;
 			}
 			if(new_result==rpp){ //第一次输出特殊判断一下
 				new_result=0;
@@ -552,7 +558,28 @@ void start_searching() {
 	while(c=getch()) { //删除操作
 		show_egg();
 		bool is_changed=0;
-		if(c==13)continue;
+		if(c==13){
+			if(now_result==0)continue;
+			else {
+				string tmp_path=result[pa[page_now].l+now_result-1].filepath;
+				if(result[pa[page_now].l+now_result-1].filesize==-1){
+					tmp_path+="\\";
+					ShellExecute(NULL, _T("explore"), _T(tmp_path.c_str()), NULL, NULL, SW_SHOW); //打开文件夹
+				}
+				else {
+					ShellExecute(NULL, _T("open"), _T(tmp_path.c_str()), NULL, NULL, SW_SHOW);  //默认方式运行
+				}
+			}
+			continue;
+			//continue;//忽略回车
+		}
+		if(c==27){  //esc 返回主菜单
+			return_to_main=1;
+			memset(con_buffer,0,sizeof(con_buffer));
+			bufferlen=-1;
+			mainwindow();
+			return;
+		}
         if(c==8&&bufferlen!=-1) { //删除
             con_buffer[bufferlen]='\0';
             bufferlen--;
@@ -587,9 +614,10 @@ void start_searching() {
         else if(c==-32){//翻页操作
         	char direction=getch();
         	if(bufferlen==-1)continue;
-        	if(direction==80||direction==77){//向下翻页
+        	if(direction==77){//向下翻页
         		if(page_now==page_tot)continue; //当前是最后一页时忽略该命令
         		else{   //翻页操作
+        			now_result=0;
         			page_now++;
         			system("cls");
 					SetColor(0x02,0);
@@ -602,8 +630,9 @@ void start_searching() {
         			continue;
         		}
         	}
-        	else if(direction==72||direction==75){ //向上翻页
+        	else if(direction==75){ //向上翻页
         		if(page_now!=1){ //当前页不是第一页才能执行翻页操作
+        			now_result=0;
         			system("cls");
 					SetColor(0x02,0);
         			cout<<con_buffer<<endl;
@@ -616,9 +645,46 @@ void start_searching() {
         		}
         		else continue; //当前是第一页时忽略翻页操作
         	}
+        	else if(direction==80){ //向下选择结果
+        		register bool selected=0;
+        		if(now_result<pa[page_now].r-pa[page_now].l)now_result++;
+        		else continue;
+        		system("cls");
+				SetColor(0x02,0);
+        		cout<<con_buffer<<endl;
+				SetColor(0xF,0);
+        		cout<<"PAGE: "<<page_now<<endl;
+        		for(int i=pa[page_now].l;i<pa[page_now].r;i++){
+        			selected=0;
+        			if(i-pa[page_now].l+1==now_result)selected=1;
+        			print_res(result[i],selected);
+        		}
+        	}
+        	else if(direction==72){ //向上选择结果
+        		register bool selected=0;
+        		if(now_result>1)now_result--;
+        		else continue;
+        		system("cls");
+				SetColor(0x02,0);
+        		cout<<con_buffer<<endl;
+				SetColor(0xF,0);
+        		cout<<"PAGE: "<<page_now<<endl;
+        		for(int i=pa[page_now].l;i<pa[page_now].r;i++){
+        			selected=0;
+        			if(i-pa[page_now].l+1==now_result)selected=1;
+        			print_res(result[i],selected);
+        		}
+        	}
         }
         else {  //更新关键字重新搜索
-        	con_buffer[++bufferlen]=c;
+        	if(c==22){//读取剪切板
+				char* ClipBoard=GetClipboard();
+				if(ClipBoard==NULL)continue;
+				for(int i=0;ClipBoard[i];i++){
+					con_buffer[++bufferlen]=ClipBoard[i];
+				}
+			}
+        	else con_buffer[++bufferlen]=c;
         	page_now=1;
         	if(c<0){  //若当前输入的是中文，要同时读进两个字符，减少bug可能
         		c=getch();
@@ -629,6 +695,7 @@ void start_searching() {
         	cout<<con_buffer<<endl;
 			SetColor(0xF,0);
         	cout<<"PAGE: "<<page_now<<endl;
+        	now_result=0;
         	restart_searching=1;
         }
     }
@@ -659,6 +726,7 @@ void other_settings() {
 }
 void init_windows() {
 	SetTitle("A GOOD LOCAL FILE SEARCHER");
+	read_egg();
 	SetSize(140,34);
 	HideConsoleCursor();
 	// main window:
@@ -675,10 +743,9 @@ void init_windows() {
 	window_filters.add_string("Only search in a Specific Path(will cover the last filter!)");
 	window_filters.add_string("Erase all");
 	window_filters.add_string("Back");
-	window_filters.setPos(30, 13);
+	window_filters.setPos(40, 13);
 }
 void mainwindow() {
-	read_egg();
 	int window_result;
 	while(1) {
 		window_result = window_main.run();
