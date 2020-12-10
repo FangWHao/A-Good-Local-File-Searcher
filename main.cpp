@@ -320,7 +320,6 @@ void init_files() {
 	cout<<"Input any word to start searching\n";
 	/********************************************************/
 	//十分重要！首先要把搜索线程分离出去，不然会卡死！！！！！！！！
-
     task01.detach();              //分离线程
 }
 
@@ -553,6 +552,7 @@ void start_searching() {
 	while(c=getch()) { //删除操作
 		show_egg();
 		bool is_changed=0;
+		if(c==13)continue;
         if(c==8&&bufferlen!=-1) { //删除
             con_buffer[bufferlen]='\0';
             bufferlen--;
