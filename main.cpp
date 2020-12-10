@@ -11,9 +11,9 @@
 #include <deque>
 #include <vector>
 #include <time.h>
-#include <thread> 
+#include <thread>
 #include <conio.h>
-#include <mutex> 
+#include <mutex>
 #include "USN.h"
 #include "reg_match.h"
 #include "file.h"
@@ -30,6 +30,7 @@ vector<int>rm,tmp_ull;  //被删除文件的USN编号
 vector<dat>data[30],tmp_dat,crt,rnm;//保存的文件所有信息，创建的文件信息和重命名的信息
 vector<string>new_name;//保存一个被重命名文件的最终名字
 vector<File>result;
+vector<string>egg;
 bool removed[MAXN],exist[MAXN];//标记是否被删除，是否已经存在
 int renamed[MAXN];//被重命名的文件的USN编号->new_name中的编号
 char con_buffer[10000];
@@ -44,6 +45,23 @@ struct Page{
 	Page(int l,int r):l(l),r(r){}
 };
 vector<Page>pa;
+void read_egg(){
+	srand(time(0));
+	string tmp;
+	ifstream fin("database\\egg.db");
+	while(getline(fin,tmp)){
+		egg.emplace_back(tmp);
+	}
+	fin.close();
+	return;
+}
+void show_egg(){
+	if(egg.size()==0)return;
+	if(rand()<=5000){
+		SetTitle(egg[rand()%egg.size()].c_str());
+	}
+	return;
+}
 void exit()
 {
 	printf("Press any key to exit");
@@ -55,7 +73,9 @@ void admincheck()//检查是否以管理员权限运行
 	bool flag = IsUserAnAdmin();
 	if (!flag)
 	{
+		SetColor(0x04,0);
 		printf("Fatal Error : Please run as Administrator.\n");
+		SetColor(0xF,0);
 		exit();
 	}
 }
@@ -110,10 +130,14 @@ bool check_info(){
 			//若现有的USN的ID与上一次运行时的ID不符，说明USN日志遭到了改动
 			USN_ID[i]=now_USN;
 			flag_rescanned[i]=1;
+			SetColor(0x04,0);
 			printf("Fatal Error: Change in USN Journal of %s detected. Please wait the program to re-scan the disk. This may take several minutes.\n",disk_path);
+			SetColor(0xF,0);
 			printf("Rescanning %s: please wait.\n",disk_path);
 			write_MFT(disk_path,data_dst,data[i]);
+			SetColor(0x02,0);
 			printf("Successfully rescanned %s.\n",disk_path);
+			SetColor(0xF,0);
 		}
 	}
 }
@@ -144,7 +168,9 @@ void first_run(){
 			tmp[data[i][j].rnum]=j;
 		for(int j=0;j<data[i].size();j++)
 			data[i][j].ppos=tmp[data[i][j].prnum];
+		SetColor(0x02,0);
 		printf("Successfully scanned %s:\n", disk_path);
+		SetColor(0xF,0);
 		delete[] tmp;
 	}
 }
@@ -214,7 +240,9 @@ void update_database(){
 		memset(removed,0,sizeof(removed));
 		memset(renamed,0,sizeof(renamed));
 		memset(exist,0,sizeof(exist));
+		SetColor(0x02,0);
 		printf("Successfully updated disk %s.\n",disk_path);
+		SetColor(0xF,0);
 	}
 }
 string get_path(int x,int pos){
@@ -233,7 +261,7 @@ string get_path(int x,int pos){
 void print_res(const File& tmp){
 	if(tmp.filesize == -1)
 		SetColor(0xB,0);
-	else 
+	else
 		SetColor(0xF,0);
 	cout<<"NAME: "<<tmp.filepath;
 	if(tmp.filesize!=-1)
@@ -270,7 +298,10 @@ void init_files() {
 		read_settings();//读入设置信息
 		read_info();    //读入USN64位ID和上次的最后一个USN
 		if(disk_num!=check_disk()){ //磁盘数量改变属于严重错误，应重新初始化
-			cout<<"Fatal Error:Change in disk number detected.\n";
+			SetColor(0x04,0);
+			cout<<"Fatal Error: Change in disk number detected.\n";
+			cout<<"The program will rescan all your disks, this will take several minutes.\n";
+			SetColor(0xF,0);
 			is_first_run=1;
 		}
 		else {
@@ -282,8 +313,10 @@ void init_files() {
 	update_info();
 	cout << "Totle Time : " << (double)clock() /CLOCKS_PER_SEC<< "s" << endl;
 	//Sleep(1000);
+	cout<<"Press any key to continue\n";
+	getche();
 	system("cls");
-	register char c; 
+	register char c;
 	cout<<"Input any word to start searching\n";
 	/********************************************************/
 	//十分重要！首先要把搜索线程分离出去，不然会卡死！！！！！！！！
@@ -308,7 +341,7 @@ public:
 			cur_pt = 1;
 		if(cur_pt >= size)
 			cur_pt = size;
-		return cur_pt; 
+		return cur_pt;
 	}
 	void operator += (int i) { cur_pt+=i; }
 	void operator -= (int i) { cur_pt-=i; }
@@ -329,11 +362,14 @@ void info::print() {
 		cur_pt = size;
 	for(int i=1;i<=size;i++) {
 		SetPos(posx, posy+i-1);
-		if(cur_pt == i)
+		if(cur_pt == i){
+			SetColor(0xB,0);
 			putchar('>');
-		cout<<info_str[i];
-		if(cur_pt == i)
+			cout<<info_str[i];
 			putchar('<');
+			SetColor(0xF,0);
+		}
+		else cout<<info_str[i];
 		putchar('\n');
 	}
 }
@@ -346,7 +382,7 @@ int info::run() {
 		system("cls");
 		print();
 		ch = getch();
-		if(ch == '\n' || ch == '\r') 
+		if(ch == '\n' || ch == '\r')
 			return get_choice();
 		if(ch == 80 || ch == 77)
 			(*this)+=1;
@@ -372,7 +408,7 @@ public:
 	int size;
 	void addfilter(int filter_type, string filter_str) {
 		if(filter_type == 5) {
-			for(int i=1;i<=size;i++) 
+			for(int i=1;i<=size;i++)
 				if(filters[i].filter_type == 5) {
 					filters[i].filter_str = filter_str;
 					return ;
@@ -382,8 +418,8 @@ public:
 		filters[size].filter_str = filter_str;
 	}
 	void addfilter(int filter_type) {
-		for(int i=1;i<=size;i++) 
-			if(filters[i].filter_type == filter_type) 
+		for(int i=1;i<=size;i++)
+			if(filters[i].filter_type == filter_type)
 				return ;
 		filters[++size].filter_type = filter_type;
 		filters[size].filter_str.clear();
@@ -392,7 +428,7 @@ public:
 		puts("Current Filters:");
 		if(size == 0)
 			puts("None!");
-		for(int i=1;i<=size;i++) 
+		for(int i=1;i<=size;i++)
 			switch(filters[i].filter_type) {
 				case 1: puts("Ignore folders.\n"); break;
 				case 2: puts("Ignore files.\n"); break;
@@ -440,7 +476,7 @@ bool filters_package::match(File matching_file) {
 		}
 		else if(filters[i].filter_type == 3) {
 			// cout<<"\n\n\n"<<get_public_suffix_length(matching_file.filename,filters[i].filter_str)<<' '<<filters[i].filter_str<<endl;
-			if(get_public_suffix_length(matching_file.filename,filters[i].filter_str) == filters[i].filter_str.length()) 
+			if(get_public_suffix_length(matching_file.filename,filters[i].filter_str) == filters[i].filter_str.length())
 				return false;
 		}
 		else if(filters[i].filter_type == 4) {
@@ -472,7 +508,7 @@ void sear(){
 	page_now=1,page_tot=0;
 	new_result=0;
 	/***************************/
-	if(!match.read_reg(con_buffer,0)) 
+	if(!match.read_reg(con_buffer,0))
 		goto FINISH;
 	string disk="C:\\",filepath;
 	for(int x=0;x<disk_num;x++,disk[0]++){
@@ -511,8 +547,11 @@ void start_searching() {
 	char c;
 	page=1;
     system("cls");
+	SetColor(0xB,0);
 	cout<<"Input any word to start searching\n";
+	SetColor(0xF,0);
 	while(c=getch()) { //删除操作
+		show_egg();
 		bool is_changed=0;
         if(c==8&&bufferlen!=-1) { //删除
             con_buffer[bufferlen]='\0';
@@ -527,20 +566,24 @@ void start_searching() {
             if(bufferlen==-1){//删干净了
             	page=1;
             	system("cls");
+				SetColor(0xB,0);
             	cout<<"Input any word to start searching\n";
+				SetColor(0xF,0);
             	continue;
             }
             else {
             	page=1;
             	system("cls");
+				SetColor(0x02,0);
             	cout<<con_buffer<<endl;
+				SetColor(0xF,0);
             	cout<<"PAGE: "<<page<<endl;
             	restart_searching=1;
             }
-        } 
+        }
         else if(c==8&&bufferlen==-1){  //防止溢出
             continue;
-        } 
+        }
         else if(c==-32){//翻页操作
         	char direction=getch();
         	if(bufferlen==-1)continue;
@@ -549,7 +592,9 @@ void start_searching() {
         		else{   //翻页操作
         			page_now++;
         			system("cls");
+					SetColor(0x02,0);
         			cout<<con_buffer<<endl;
+					SetColor(0xF,0);
         			cout<<"PAGE: "<<page_now<<endl;
         			for(int i=pa[page_now].l;i<pa[page_now].r;i++){
         				print_res(result[i]);
@@ -560,7 +605,9 @@ void start_searching() {
         	else if(direction==72||direction==75){ //向上翻页
         		if(page_now!=1){ //当前页不是第一页才能执行翻页操作
         			system("cls");
+					SetColor(0x02,0);
         			cout<<con_buffer<<endl;
+					SetColor(0xF,0);
         			page_now--;
         			cout<<"PAGE: "<<page_now<<endl;
         			for(int i=pa[page_now].l;i<pa[page_now].r;i++){
@@ -578,7 +625,9 @@ void start_searching() {
         		con_buffer[++bufferlen]=c;
         	}
         	system("cls");
+			SetColor(0x02,0);
         	cout<<con_buffer<<endl;
+			SetColor(0xF,0);
         	cout<<"PAGE: "<<page_now<<endl;
         	restart_searching=1;
         }
@@ -598,7 +647,7 @@ void set_searching_filter() {
 			cin>>tmp;
 			filters.addfilter(window_result,tmp);
 		}
-		else if(window_result == 6) 
+		else if(window_result == 6)
 			filters.clear();
 		else
 			return ;
@@ -606,17 +655,18 @@ void set_searching_filter() {
 	}
 }
 void other_settings() {
-	
+
 }
 void init_windows() {
-	SetSize(75,34);
+	SetTitle("A GOOD LOCAL FILE SEARCHER");
+	SetSize(140,34);
 	HideConsoleCursor();
-	// main window: 
+	// main window:
 	window_main.add_string("Start Searching");
 	window_main.add_string("Set Searching Fliter");
 	window_main.add_string("Other Settings");
 	window_main.add_string("Quit");
-	window_main.setPos(30, 14);
+	window_main.setPos(60, 14);
 	// filters settings window:
 	window_filters.add_string("Ignore Folders");
 	window_filters.add_string("Ignore Files");
@@ -628,6 +678,7 @@ void init_windows() {
 	window_filters.setPos(30, 13);
 }
 void mainwindow() {
+	read_egg();
 	int window_result;
 	while(1) {
 		window_result = window_main.run();
