@@ -82,6 +82,22 @@ void print_time(FILETIME ftime){
     sprintf(str, "%04u-%02u-%02u %02u:%02u:%02u",rtime.wYear, rtime.wMonth, rtime.wDay, rtime.wHour, rtime.wMinute, rtime.wSecond);
     printf("%s",str);
 }
+char* GetClipboard(){
+	char* lpStr=NULL;
+	if(::OpenClipboard(NULL)){//获得剪贴板数据
+       	HGLOBAL hMem=GetClipboardData(CF_TEXT);
+       	if(NULL!=hMem){
+           	lpStr=(char*)::GlobalLock(hMem);
+           	if(NULL!=lpStr){
+               	//MessageBox(0, lpStr, "", 0);
+           		cout<<lpStr<<endl;
+               	::GlobalUnlock(hMem);
+           	}
+       	}
+       	::CloseClipboard();
+   	}
+   	return lpStr;
+}
 bool Time_cmp(const FILETIME a,const FILETIME b){ // <
 	if(a.dwHighDateTime==b.dwHighDateTime)return a.dwLowDateTime<b.dwLowDateTime;
 	else return a.dwHighDateTime<b.dwHighDateTime;
