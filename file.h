@@ -18,7 +18,7 @@ public:
 	int rnum, prnum,ppos; //reference number，parent reference number，parent在vector中的位置
 	dat(){}
 	dat(char* s,int r,int pr=0,int l=0,int pp=0):rnum(r),prnum(pr),len(l),ppos(pp){
-		filename=new char[l]; //深层复制
+		filename=new char[l+4]; //深层复制
 		strcpy(filename,s);
 	}
 	dat(const dat &a){
@@ -26,7 +26,7 @@ public:
 		rnum=a.rnum;
 		prnum=a.prnum;
 		ppos=a.ppos;
-		filename=new char[len];
+		filename=new char[len+4];
 		strcpy(filename,a.filename);
 	}
 };
@@ -38,12 +38,27 @@ public:
 	int disk;//所在磁盘
 	File(){}
 	File(dat x,int disk,string filepath):disk(disk),filepath(filepath){ //初始化，注意深层复制！！！
-		filename=new char[x.len];
+		filename=new char[x.len+4];
 		strcpy(filename,x.filename);
 		len=x.len;
 		rnum=x.rnum,prnum=x.prnum,ppos=x.ppos;
 		filesize=get_size(filepath.c_str()).QuadPart;
 		get_time(*this);
+	}
+	File(const File &a) {
+		len=a.len;
+		rnum=a.rnum;
+		prnum=a.prnum;
+		ppos=a.ppos;
+		filename=new char[len+4];
+		strcpy(filename,a.filename);
+
+		filepath = a.filepath;
+		filesize = a.filesize;
+		CreatT = a.CreatT;
+		AccessT = a.AccessT;
+		WriteT = a.WriteT;
+		disk = a.disk;
 	}
 	~File(){
 		delete[] filename;
@@ -107,6 +122,7 @@ bool size_cmp_l(File a,File b){ //由大到小
 	return a.filesize>b.filesize;
 }
 bool size_cmp_s(File a,File b){ //由小到大
+	if(a.filesize==b.filesize)return a.filename<b.filename;
 	return a.filesize<b.filesize;
 }
 bool CreatT_cmp_l(File a,File b){
@@ -126,5 +142,44 @@ bool WriteT_cmp_l(File a,File b){
 }
 bool WriteT_cmp_s(File a,File b){
 	return Time_cmp(a.WriteT,b.WriteT);
+}
+void merge_sort(vector<File> &vec, bool cmp(File,File)) {
+				puts("Errr1!");
+    int len = vec.size();
+	File *arr = new File[len];
+	for(int i=0;i<len;i++)
+		arr[i] = vec[i];
+				puts("Errr2!");
+	File *a = arr;
+    File *b = new File[len];
+    for (int seg = 1; seg < len; seg += seg) {
+        for (int start = 0; start < len; start += seg + seg) {
+            int low = start, mid = min(start + seg, len), high = min(start + seg + seg, len);
+            int k = low;
+            int start1 = low, end1 = mid;
+            int start2 = mid, end2 = high;
+            while (start1 < end1 && start2 < end2)
+                b[k++] = cmp(a[start1], a[start2]) ? a[start1++] : a[start2++];
+            while (start1 < end1)
+                b[k++] = a[start1++];
+            while (start2 < end2)
+                b[k++] = a[start2++];
+        }
+        File *temp = a;
+        a = b;
+        b = temp;
+    }
+			puts("Errr3!");
+    if (a != arr) {
+        for (int i = 0; i < len; i++)
+            b[i] = a[i];
+        b = a;
+    }
+	for(int i=0;i<len;i++)
+		vec[i] = arr[i];
+			puts("Errr4!");
+    delete[] b;
+	delete[] arr;
+			puts("Errr5!");
 }
 #endif
