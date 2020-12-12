@@ -143,43 +143,73 @@ bool WriteT_cmp_l(File a,File b){
 bool WriteT_cmp_s(File a,File b){
 	return Time_cmp(a.WriteT,b.WriteT);
 }
-void merge_sort(vector<File> &vec, bool cmp(File,File)) {
-				puts("Errr1!");
-    int len = vec.size();
-	File *arr = new File[len];
-	for(int i=0;i<len;i++)
-		arr[i] = vec[i];
-				puts("Errr2!");
-	File *a = arr;
-    File *b = new File[len];
-    for (int seg = 1; seg < len; seg += seg) {
-        for (int start = 0; start < len; start += seg + seg) {
-            int low = start, mid = min(start + seg, len), high = min(start + seg + seg, len);
-            int k = low;
-            int start1 = low, end1 = mid;
-            int start2 = mid, end2 = high;
-            while (start1 < end1 && start2 < end2)
-                b[k++] = cmp(a[start1], a[start2]) ? a[start1++] : a[start2++];
-            while (start1 < end1)
-                b[k++] = a[start1++];
-            while (start2 < end2)
-                b[k++] = a[start2++];
-        }
-        File *temp = a;
-        a = b;
-        b = temp;
-    }
-			puts("Errr3!");
-    if (a != arr) {
-        for (int i = 0; i < len; i++)
-            b[i] = a[i];
-        b = a;
-    }
-	for(int i=0;i<len;i++)
-		vec[i] = arr[i];
-			puts("Errr4!");
-    delete[] b;
-	delete[] arr;
-			puts("Errr5!");
+void merge_sort1(int l,int r,bool cmp(File,File),vector<File>&vec);
+File* tmp;
+void merge_sort(vector<File>&vec, bool cmp(File,File)){
+	cout<<"Fuck"<<endl;
+	tmp=new File[vec.size()];
+	merge_sort1(0,vec.size()-1,cmp,vec);
+	cout<<"shit"<<endl;
+	delete[] tmp;
 }
+void merge_sort1(int l,int r,bool cmp(File,File),vector<File>&vec){
+	//cout<<l<<' '<<r<<endl;
+	//getchar();
+	if(l==r){
+		tmp[l]=vec[l];
+		return;
+	}
+	int m=(l+r)>>1;
+	merge_sort1(l,m,cmp,vec);
+	merge_sort1(m+1,r,cmp,vec);
+	int lp=l,rp=m+1,p=l;
+	while(lp<=m&&rp<=r){
+		if(cmp(tmp[lp],tmp[rp])){
+			vec[p++]=tmp[lp++];
+		}
+		else vec[p++]=tmp[rp++];
+	}
+	while(lp<=m)vec[p++]=tmp[lp++];
+	while(rp<=r)vec[p++]=tmp[rp++];
+	for(int i=l;i<=r;i++)tmp[i]=vec[i];
+}
+// void merge_sort(vector<File> &vec, bool cmp(File,File)) {
+// 				puts("Errr1!");
+//     int len = vec.size();
+// 	File *arr = new File[len];
+// 	for(int i=0;i<len;i++)
+// 		arr[i] = vec[i];
+// 				puts("Errr2!");
+// 	File *a = arr;
+//     File *b = new File[len];
+//     for (int seg = 1; seg < len; seg += seg) {
+//         for (int start = 0; start < len; start += seg + seg) {
+//             int low = start, mid = min(start + seg, len), high = min(start + seg + seg, len);
+//             int k = low;
+//             int start1 = low, end1 = mid;
+//             int start2 = mid, end2 = high;
+//             while (start1 < end1 && start2 < end2)
+//                 b[k++] = cmp(a[start1], a[start2]) ? a[start1++] : a[start2++];
+//             while (start1 < end1)
+//                 b[k++] = a[start1++];
+//             while (start2 < end2)
+//                 b[k++] = a[start2++];
+//         }
+//         File *temp = a;
+//         a = b;
+//         b = temp;
+//     }
+// 			puts("Errr3!");
+//     if (a != arr) {
+//         for (int i = 0; i < len; i++)
+//             b[i] = a[i];
+//         b = a;
+//     }
+// 	for(int i=0;i<len;i++)
+// 		vec[i] = arr[i];
+// 			puts("Errr4!");
+//     delete[] b;
+// 	delete[] arr;
+// 			puts("Errr5!");
+// }
 #endif
