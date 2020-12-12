@@ -499,7 +499,7 @@ bool filters_package::match(File matching_file) {
 }
 bool return_to_main=0, switch_filters=0,//是否在搜索过程中应用筛选条件
 	search_finished=0;//后台搜索是否完成
-int sorting_mode = 0;//0-不排序(default) 1&-1:大小 2&-2:创建时间 3&-3:修改时间 4&-4:访问时间
+int sorting_mode = 1;//0-不排序(default) 1&-1:大小 2&-2:创建时间 3&-3:修改时间 4&-4:访问时间
 void sear() {
 	FINISH:
 	search_finished = 1;
@@ -565,7 +565,7 @@ void start_searching() {
 	cout<<"Input any word to start searching\n";
 	SetColor(0xF,0);
 	while(1) { //删除操作
-		c=getch(); 
+		c=getch();
 		show_egg();
 		bool is_changed=0;
 		// cout<<(int)c<<endl;
@@ -587,18 +587,31 @@ void start_searching() {
 				case 8:
 					switch_filters = !switch_filters; break;
 				case 10:
-					if(sorting_mode != 0 && search_finished) { //满足条件时对结果进行排序
+					if(sorting_mode != 0) { //满足条件时对结果进行排序
+						if(!search_finished){
+							cout<<"The program is still searching results, please wait.\n";
+							cout<<"If you want to quit sorting, please press ESC button\n";
+							char cc;
+							while(cc=getch()){
+								if(cc=27){
+									goto QUIT_SORTING;
+								}
+							}
+						}
+						system("cls");
 						puts("Sorting begin!");
+						//getchar();
 						switch(sorting_mode) {
 							case 1:  merge_sort(result, size_cmp_s);
-							case -1: merge_sort(result, size_cmp_l);
-							case 2:  merge_sort(result, CreatT_cmp_s);
-							case -2: merge_sort(result, CreatT_cmp_l);
-							case 3:  merge_sort(result, WriteT_cmp_s);
-							case -3: merge_sort(result, WriteT_cmp_l);
-							case 4:  merge_sort(result, AccessT_cmp_s);
-							case -4: merge_sort(result, AccessT_cmp_l);
+							// case -1: merge_sort(result, size_cmp_l);
+							// case 2:  merge_sort(result, CreatT_cmp_s);
+							// case -2: merge_sort(result, CreatT_cmp_l);
+							// case 3:  merge_sort(result, WriteT_cmp_s);
+							// case -3: merge_sort(result, WriteT_cmp_l);
+							// case 4:  merge_sort(result, AccessT_cmp_s);
+							// case -4: merge_sort(result, AccessT_cmp_l);
 						}
+						//while(1);
 						puts("Sorting completed!");
 					}
 					else if(!search_finished)
@@ -627,7 +640,7 @@ void start_searching() {
 			}
 			continue;
 		}
-		
+
 		if(c==13) {
 			if(now_result==0) continue;
 			else {
@@ -770,6 +783,7 @@ void start_searching() {
         		c=getch();
         		con_buffer[++bufferlen]=c;
         	}
+			QUIT_SORTING:
         	system("cls");
 			SetColor(0x02,0);
         	cout<<con_buffer<<endl;
@@ -807,7 +821,7 @@ void other_settings() {
 void init_windows() {
 	SetTitle("A GOOD LOCAL FILE SEARCHER");
 	read_egg();
-	SetSize(140,34);
+	//SetSize(140,34);
 	HideConsoleCursor();
 	// main window:
 	window_main.add_string("Start Searching");
@@ -849,4 +863,3 @@ signed main() {
 	init_files();
 	mainwindow();
 }
-
