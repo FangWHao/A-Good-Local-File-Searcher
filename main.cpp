@@ -47,6 +47,7 @@ struct Page{
 	Page(int l,int r):l(l),r(r){}
 };
 vector<Page>pa;
+
 void mainwindow();
 void read_egg(){
 	srand(time(0));
@@ -60,7 +61,7 @@ void read_egg(){
 }
 void show_egg(){
 	if(egg.size()==0)return;
-	if(rand()<=5000){
+	if(rand()<=5000) {
 		SetTitle(egg[rand()%egg.size()].c_str());
 	}
 	return;
@@ -355,7 +356,8 @@ public:
 private:
 	int size, cur_pt, posx, posy;
 	string info_str[INFO_MAX_SIZE];
-} window_main, window_filters;
+} window_main, window_filters, window_sorting,
+  window_help, window_other_settings;
 void info::print() {
 	if(size == 0) {
 		puts("Error in info::print()");
@@ -496,12 +498,16 @@ bool filters_package::match(File matching_file) {
 	}
 	return true;
 }
-bool return_to_main=0;
-void sear(){
+bool return_to_main=0, switch_filters=0,//是否在搜索过程中应用筛选条件
+	search_finished=0;//后台搜索是否完成
+int sorting_mode = 1;//0-不排序(default) 1&-1:大小 2&-2:创建时间 3&-3:修改时间 4&-4:访问时间
+void sear() {
 	FINISH:
+	search_finished = 1;
 	//cout<<"FINISHED"<<endl;
 	while(!restart_searching); //开始时等待信号
 	RESTART:
+	search_finished = 0;
 	//cout<<"RESTART"<<endl;
 	/**********初始化************/
 	restart_searching=0;
@@ -555,11 +561,84 @@ void start_searching() {
 	SetColor(0xB,0);
 	cout<<"Input any word to start searching\n";
 	SetColor(0xF,0);
-	while(c=getch()) { //删除操作
+	while(1) { //删除操作
+		c=getch();
 		show_egg();
 		bool is_changed=0;
-		if(c==13){
-			if(now_result==0)continue;
+		// cout<<(int)c<<endl;
+		// _sleep(1000);
+		if(c==0) { //按Fn键组切换排序方式与筛选器开关
+			int fn_valume = getch() - 58;
+			// cout<<"DDDD   "<<fn_valume<<endl;
+			switch(fn_valume) {
+				case 2:
+					sorting_mode = window_sorting.run(); break;
+				case 10:
+					if(sorting_mode != 1) { //满足条件时对结果进行排序
+						fileh_switch_debug = 1;
+						if(!search_finished){
+							cout<<"The program is still searching results, please wait.\n";
+							cout<<"If you want to quit sorting, please press ESC button\n";
+							char cc;
+							while(cc=getch()){
+								if(cc=27){
+									goto QUIT_SORTING;
+								}
+							}
+						}
+						system("cls");
+						puts("Sorting begin!");
+						//getchar();
+						// puts("qian");
+						// for(int i=0;i<result.size();i++)
+						// 	cout<<result[i].filename<<endl;
+						// puts("qian");
+						switch(sorting_mode) {
+							case 2:  merge_sort(result, size_cmp_s); break;
+							case 3: merge_sort(result, size_cmp_l); break;
+							case 4:  merge_sort(result, CreatT_cmp_s); break;
+							case 5: merge_sort(result, CreatT_cmp_l); break;
+							case 6:  merge_sort(result, WriteT_cmp_s); break;
+							case 7: merge_sort(result, WriteT_cmp_l); break;
+							case 8:  merge_sort(result, AccessT_cmp_s); break;
+							case 9: merge_sort(result, AccessT_cmp_l); break;
+						}
+						// puts("hou");
+						// for(int i=0;i<result.size();i++)
+						// 	cout<<result[i].filename<<endl;
+						// puts("hou");
+						//while(1);
+						puts("Sorting completed!");
+						fileh_switch_debug = 0;
+					}
+					else if(!search_finished)
+						puts("Search hasn't finished. Please wait...");
+					break;
+				case 5:
+					cout<<"Sorting mode = "<<sorting_mode<<" ;"<<(switch_filters?"Filters activated":"Filters disabled")<<endl;
+					break;
+				case 1: //help
+					ShellExecute(NULL, _T("open"), _T("help.txt"), NULL, NULL, SW_SHOW);
+					break;
+			}
+			now_result=0;
+        	if(fn_valume == 10)
+				page_now=1;
+        	system("cls");
+			SetColor(0x02,0);
+        	cout<<con_buffer<<endl;
+			SetColor(0xF,0);
+        	cout<<"PAGE: "<<page_now<<endl;
+        	for(int i=pa[page_now].l;i<pa[page_now].r;i++){
+        		print_res(result[i]);
+        	}
+			SetColor(0xF,0);
+			if(search_finished)
+				cout<<"#Search completed: Total "<<result.size()<<" results!\n\n";
+			continue;
+		}
+		if(c==13) {
+			if(now_result==0) continue;
 			else {
 				string tmp_path=result[pa[page_now].l+now_result-1].filepath;
 				if(result[pa[page_now].l+now_result-1].filesize==-1){
@@ -573,14 +652,13 @@ void start_searching() {
 			continue;
 			//continue;//忽略回车
 		}
-		if(c==27){  //esc 返回主菜单
+		if(c==27) {  //esc 返回主菜单
 			return_to_main=1;
 			memset(con_buffer,0,sizeof(con_buffer));
 			bufferlen=-1;
-			mainwindow();
 			return;
 		}
-        if(c==8&&bufferlen!=-1) { //删除
+        if(c==8 && bufferlen!=-1) { //删除
             con_buffer[bufferlen]='\0';
             bufferlen--;
             page=1;
@@ -608,13 +686,13 @@ void start_searching() {
             	restart_searching=1;
             }
         }
-        else if(c==8&&bufferlen==-1){  //防止溢出
+        else if(c==8 && bufferlen==-1){  //防止溢出
             continue;
         }
-        else if(c==-32){//翻页操作
+        else if(c==-32) {//翻页操作
         	char direction=getch();
         	if(bufferlen==-1)continue;
-        	if(direction==77){//向下翻页
+        	if(direction==77) { //向下翻页
         		if(page_now==page_tot)continue; //当前是最后一页时忽略该命令
         		else{   //翻页操作
         			now_result=0;
@@ -627,6 +705,9 @@ void start_searching() {
         			for(int i=pa[page_now].l;i<pa[page_now].r;i++){
         				print_res(result[i]);
         			}
+					SetColor(0xF,0);
+					if(search_finished)
+						cout<<"#Search completed: Total "<<result.size()<<" results!\n\n";
         			continue;
         		}
         	}
@@ -642,6 +723,10 @@ void start_searching() {
         			for(int i=pa[page_now].l;i<pa[page_now].r;i++){
 						print_res(result[i]);
 					}
+					SetColor(0xF,0);
+					if(search_finished)
+						cout<<"#Search completed: Total "<<result.size()<<" results!\n\n";
+					continue;
         		}
         		else continue; //当前是第一页时忽略翻页操作
         	}
@@ -659,10 +744,12 @@ void start_searching() {
         			if(i-pa[page_now].l+1==now_result)selected=1;
         			print_res(result[i],selected);
         		}
+				if(search_finished)
+					cout<<"#Search completed: Total "<<result.size()<<" results!\n\n";
         	}
         	else if(direction==72){ //向上选择结果
         		register bool selected=0;
-        		if(now_result>1)now_result--;
+        		if(now_result>1) now_result--;
         		else continue;
         		system("cls");
 				SetColor(0x02,0);
@@ -674,10 +761,12 @@ void start_searching() {
         			if(i-pa[page_now].l+1==now_result)selected=1;
         			print_res(result[i],selected);
         		}
+				if(search_finished)
+					cout<<"#Search completed: Total "<<result.size()<<" results!\n\n";
         	}
         }
         else {  //更新关键字重新搜索
-        	if(c==22){//读取剪切板
+        	if(c==22){ //读取剪切板
 				char* ClipBoard=GetClipboard();
 				if(ClipBoard==NULL)continue;
 				for(int i=0;ClipBoard[i];i++){
@@ -690,6 +779,7 @@ void start_searching() {
         		c=getch();
         		con_buffer[++bufferlen]=c;
         	}
+			QUIT_SORTING:
         	system("cls");
 			SetColor(0x02,0);
         	cout<<con_buffer<<endl;
@@ -723,11 +813,12 @@ void set_searching_filter() {
 }
 void other_settings() {
 
+
 }
 void init_windows() {
 	SetTitle("A GOOD LOCAL FILE SEARCHER");
 	read_egg();
-	SetSize(140,34);
+	SetSize(140,40);
 	HideConsoleCursor();
 	// main window:
 	window_main.add_string("Start Searching");
@@ -744,6 +835,18 @@ void init_windows() {
 	window_filters.add_string("Erase all");
 	window_filters.add_string("Back");
 	window_filters.setPos(40, 13);
+	// Sorting mode setting window:
+	window_sorting.add_string("Close the sorting function");
+	window_sorting.add_string("Size - Ascending order");
+	window_sorting.add_string("Size - Descending order");
+	window_sorting.add_string("Create time - Ascending order");
+	window_sorting.add_string("Create time - Descending order");
+	window_sorting.add_string("Write time - Ascending order");
+	window_sorting.add_string("Write time - Descending order");
+	window_sorting.add_string("Access time - Ascending order");
+	window_sorting.add_string("Access time - Descending order");
+	// Other settings window:
+	window_other_settings.add_string("");
 }
 void mainwindow() {
 	int window_result;
@@ -769,4 +872,3 @@ signed main() {
 	init_files();
 	mainwindow();
 }
-
