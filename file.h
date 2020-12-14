@@ -8,6 +8,9 @@
 #include"USN.h"
 #define ll long long
 using namespace std;
+
+bool fileh_switch_debug;
+
 LARGE_INTEGER get_size(const char* filepath);
 class File;
 void get_time(File& fl);
@@ -16,10 +19,20 @@ public:
 	char* filename;  //文件名
 	int len; //文件名的长度+1(\0)
 	int rnum, prnum,ppos; //reference number，parent reference number，parent在vector中的位置
-	dat(){}
+	dat(){ filename = NULL; }
 	dat(char* s,int r,int pr=0,int l=0,int pp=0):rnum(r),prnum(pr),len(l),ppos(pp){
 		filename=new char[l]; //深层复制
 		strcpy(filename,s);
+	}
+	dat& operator =(const dat &a) {
+		len=a.len;
+		rnum=a.rnum;
+		prnum=a.prnum;
+		ppos=a.ppos;
+		if(filename != NULL)
+			delete[] filename;
+		filename=new char[len];
+		strcpy(filename,a.filename);
 	}
 	dat(const dat &a){
 		len=a.len;
@@ -45,7 +58,51 @@ public:
 		filesize=get_size(filepath.c_str()).QuadPart;
 		get_time(*this);
 	}
-	~File(){
+	File(const File &a) {
+		len=a.len;
+		rnum=a.rnum;
+		prnum=a.prnum;
+		ppos=a.ppos;
+		filename=new char[len];
+		strcpy(filename,a.filename);
+		// if(fileh_switch_debug)
+		// 	cout<<"Fuzhigouzao1  "<<a.filename<<"    "<<strlen(a.filename)<<endl;
+		// if(fileh_switch_debug)
+		// 	cout<<"Fuzhigouzao2  "<<filename<<"    "<<strlen(filename)<<endl;
+		filepath = a.filepath;
+		filesize = a.filesize;
+		CreatT = a.CreatT;
+		AccessT = a.AccessT;
+		WriteT = a.WriteT;
+		disk = a.disk;
+	}
+	File& operator =(const File &a) {
+		len=a.len;
+		rnum=a.rnum;
+		prnum=a.prnum;
+		ppos=a.ppos;
+		// if(filename == NULL)
+		// 	cout<<"IIIIIIIII";
+		// if(filename != NULL && fileh_switch_debug)
+		// 	cout<<"Fu~zhi~hanshu0  "<<strlen(filename)<<"    "<<filename<<endl;
+		if(filename != NULL)
+			delete[] filename;
+		filename=new char[len];
+		strcpy(filename,a.filename);
+		// if(fileh_switch_debug)
+		// 	cout<<"Fu~zhi~hanshu1  "<<a.filename<<"    "<<strlen(a.filename)<<endl;
+		// if(fileh_switch_debug)
+		// 	cout<<"Fu~zhi~hanshu2  "<<filename<<"    "<<strlen(filename)<<endl;
+		filepath = a.filepath;
+		filesize = a.filesize;
+		CreatT = a.CreatT;
+		AccessT = a.AccessT;
+		WriteT = a.WriteT;
+		disk = a.disk;
+	}
+	~File() {
+		// if(fileh_switch_debug)
+		// 	cout<<"Xigou  "<<filename<<"    "<<strlen(filename)<<endl;
 		delete[] filename;
 	}
 };
@@ -107,6 +164,7 @@ bool size_cmp_l(File a,File b){ //由大到小
 	return a.filesize>b.filesize;
 }
 bool size_cmp_s(File a,File b){ //由小到大
+	if(a.filesize==b.filesize)return a.filename<b.filename;
 	return a.filesize<b.filesize;
 }
 bool CreatT_cmp_l(File a,File b){
@@ -127,4 +185,80 @@ bool WriteT_cmp_l(File a,File b){
 bool WriteT_cmp_s(File a,File b){
 	return Time_cmp(a.WriteT,b.WriteT);
 }
+void merge_sort1(int l,int r,bool cmp(File,File),vector<File>&vec);
+File* tmp;
+void merge_sort(vector<File>&vec, bool cmp(File,File)){
+	//cout<<"Fuck"<<endl;
+	tmp=new File[vec.size()];
+	//cout<<"Holy 1"<<endl;
+	merge_sort1(0,vec.size()-1,cmp,vec);
+	//cout<<"shit"<<endl;
+	delete[] tmp;
+}
+void merge_sort1(int l,int r,bool cmp(File,File),vector<File>&vec){
+	//cout<<l<<' '<<r<<endl;
+	//getchar();
+	if(l==r) {
+		//cout<<"Holy 2"<<endl;
+		tmp[l]=vec[l];
+		return;
+	}
+	int m=(l+r)>>1;
+	merge_sort1(l,m,cmp,vec);
+	merge_sort1(m+1,r,cmp,vec);
+	int lp=l,rp=m+1,p=l;
+	while(lp<=m&&rp<=r){
+		if(cmp(tmp[lp],tmp[rp])){
+			//cout<<"Holy 3"<<endl;
+			vec[p++]=tmp[lp++];
+		}
+		else //cout<<"Holy 4"<<endl,
+			vec[p++]=tmp[rp++];
+	}
+	while(lp<=m) //cout<<"Holy 5"<<endl, 
+		vec[p++]=tmp[lp++];
+	while(rp<=r) //cout<<"Holy 6"<<endl, 
+		vec[p++]=tmp[rp++];
+	for(int i=l;i<=r;i++) //cout<<"Holy 7"<<endl, 
+		tmp[i]=vec[i];
+}
+// void merge_sort(vector<File> &vec, bool cmp(File,File)) {
+// 				puts("Errr1!");
+//     int len = vec.size();
+// 	File *arr = new File[len];
+// 	for(int i=0;i<len;i++)
+// 		arr[i] = vec[i];
+// 				puts("Errr2!");
+// 	File *a = arr;
+//     File *b = new File[len];
+//     for (int seg = 1; seg < len; seg += seg) {
+//         for (int start = 0; start < len; start += seg + seg) {
+//             int low = start, mid = min(start + seg, len), high = min(start + seg + seg, len);
+//             int k = low;
+//             int start1 = low, end1 = mid;
+//             int start2 = mid, end2 = high;
+//             while (start1 < end1 && start2 < end2)
+//                 b[k++] = cmp(a[start1], a[start2]) ? a[start1++] : a[start2++];
+//             while (start1 < end1)
+//                 b[k++] = a[start1++];
+//             while (start2 < end2)
+//                 b[k++] = a[start2++];
+//         }
+//         File *temp = a;
+//         a = b;
+//         b = temp;
+//     }
+// 			puts("Errr3!");
+//     if (a != arr) {
+//         for (int i = 0; i < len; i++)
+//             b[i] = a[i];
+//         b = a;
+//     }
+// 	for(int i=0;i<len;i++)
+// 		vec[i] = arr[i];
+// 			puts("Errr4!");
+//     delete[] b;
+// 	delete[] arr;
+// 			puts("Errr5!");
+// }
 #endif
