@@ -265,8 +265,8 @@ bool NFA::read_reg (char *reg, int L, int R, int start_point, int dest_point, bo
 	if(is_birth) //初始化 
 		while(!hidden_edge.empty())
 			hidden_edge.pop();
-	if(is_birth && reg[R] == '$' && reg[R-1] != '\\') //检测下标 
-		R--;
+	if(is_birth && reg[L] == '^') //检测上标 
+		L++;
 	else if(is_birth) {
 		int klpt1 = ++size, klpt2 = ++size, newstpt = ++size;
 		
@@ -283,8 +283,8 @@ bool NFA::read_reg (char *reg, int L, int R, int start_point, int dest_point, bo
 		addedge(klpt2, klpt1, '\0');
 		start_point = newstpt;
 	}
-	if(is_birth && reg[L] == '^') //检测上标 
-		L++;
+	if(is_birth && reg[R] == '$' && reg[R-1] != '\\') //检测下标 
+		R--;
 	else if(is_birth) {
 		int klpt1 = ++size, klpt2 = ++size, newdespt = ++size;
 		
@@ -303,6 +303,9 @@ bool NFA::read_reg (char *reg, int L, int R, int start_point, int dest_point, bo
 	}
 	while(reg[L] == '(' && R == get_next_pos(reg,L)) //去括号 
 		L++, R--;
+	if(L>R) { //���У��մ���ɶҲ���� 
+		return true;
+	}
 	//from start_point to dest_point : [reg] route 
 	split_result ret = split(reg,L,R);
 	if(ret.mode == 0) { //单字符，开始连边 
@@ -488,20 +491,21 @@ bool DFA::match (char *str) {
 		return true;
 	for(int i=0;i<len;i++) {
 		if(str[i] < 0) { //检测到中文 
-			if(lnk[current][str[i]] == 0) //中文不匹配，走else包 
-				current = lnk[current][('\1')];
-			else if(lnk[lnk[current][str[i]]][str[i+1]] == 0) //中文还不匹配，继续走else包 
+			if(charpool.find(str[i])==charpool.end() || charpool.find(str[i+1])==charpool.end() ||
+			  lnk[current][str[i]] != -1 || lnk[lnk[current][str[i]]][str[i+1]] != -1) //中文不匹配，走else包 
 				current = lnk[current][('\1')];
 			else
 				current = lnk[lnk[current][str[i]]][str[i+1]];//中文沿边行进 
 			i++;//中文有两个字符 
 		}
 		else {
-			if(lnk[current][str[i]] == 0) //如果符号未定义则走else包 
+			if(charpool.find(str[i]) == charpool.end()) //如果符号未定义则走else包 
 				current = lnk[current][('\1')];
 			else
 				current = lnk[current][str[i]]; //沿边行进 
 		}
+		if(current == -1) //程序让你滚，你就得滚
+			return false;
 	}
 	return is_end[current]; //必须在最后时刻成功跑掉 
 }
@@ -684,8 +688,8 @@ void DFA::transform_NFA_to_DFA(NFA &bas_nfa) { //转换函数
 					break;
 				}
 		//执行结果 
-			if(reppos == -1 && tmpset.size() == 0) { //空状态，索引回1 
-				lnk[tmp][*charpool_iter] = 1;
+			if(reppos == -1 && tmpset.size() == 0) { //空状态，让它滚 
+				lnk[tmp][*charpool_iter] = -1;
 			}
 			else if(reppos == -1) { //无重复，建立新状态保存之，建边，入队 
 				state[++size] = tmpset;
