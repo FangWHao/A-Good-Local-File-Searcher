@@ -35,7 +35,8 @@ vector<File>result;
 vector<string>egg;
 bool removed[MAXN],exist[MAXN];//标记是否被删除，是否已经存在
 int renamed[MAXN];//被重命名的文件的USN编号->new_name中的编号
-char con_buffer[10000];
+char con_buffer[10000];//控制台缓冲区
+bool is_chinese[10000];
 int bufferlen=-1,now_result=0;
 extern int rpp=5;//result per page
 project match;
@@ -666,7 +667,8 @@ void start_searching() {
             bufferlen--;
             page=1;
             if(bufferlen>=0){ //中文类型需要特殊判断，完整删除两个ASCII
-            	if(con_buffer[bufferlen]<0){
+            	if(is_chinese[bufferlen]){ 
+            		is_chinese[bufferlen]=0;
             		con_buffer[bufferlen]='\0';
            		 	bufferlen--;
             	}
@@ -780,6 +782,7 @@ void start_searching() {
         	page_now=1;
         	if(c<0){  //若当前输入的是中文，要同时读进两个字符，减少bug可能
         		c=getch();
+        		is_chinese[bufferlen]=1;
         		con_buffer[++bufferlen]=c;
         	}
 			QUIT_SORTING:
