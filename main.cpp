@@ -23,6 +23,13 @@
 using namespace std;
 #define ull unsigned long long
 #define MAXN 10000000
+namespace color {
+	int background = 0;
+	int foreground_default = 0xF,
+	foreground_chosen = 0x02,
+	foreground_folder = 0xB, 
+	foreground_buffer = 0xB;
+}
 int disk_num=0,page=1;
 USN last_USN[255];//读取到的上一次运行时各个硬盘的最后一个USN编号
 USN USN_ID[255]; //每一个硬盘中的USN日志编号
@@ -78,9 +85,9 @@ void admincheck()//检查是否以管理员权限运行
 	bool flag = IsUserAnAdmin();
 	if (!flag)
 	{
-		SetColor(0x04,0);
+		SetColor(0x04,color::background);
 		printf("Fatal Error : Please run as Administrator.\n");
-		SetColor(0xF,0);
+		SetColor(color::foreground_default,color::background);
 		exit();
 	}
 }
@@ -135,14 +142,14 @@ bool check_info(){
 			//若现有的USN的ID与上一次运行时的ID不符，说明USN日志遭到了改动
 			USN_ID[i]=now_USN;
 			flag_rescanned[i]=1;
-			SetColor(0x04,0);
+			SetColor(0x04,color::background);
 			printf("Fatal Error: Change in USN Journal of %s detected. Please wait the program to re-scan the disk. This may take several minutes.\n",disk_path);
-			SetColor(0xF,0);
+			SetColor(color::foreground_default,color::background);
 			printf("Rescanning %s: please wait.\n",disk_path);
 			write_MFT(disk_path,data_dst,data[i]);
-			SetColor(0x02,0);
+			SetColor(color::foreground_chosen,color::background);
 			printf("Successfully rescanned %s.\n",disk_path);
-			SetColor(0xF,0);
+			SetColor(color::foreground_default,color::background);
 		}
 	}
 }
@@ -173,9 +180,9 @@ void first_run(){
 			tmp[data[i][j].rnum]=j;
 		for(int j=0;j<data[i].size();j++)
 			data[i][j].ppos=tmp[data[i][j].prnum];
-		SetColor(0x02,0);
+		SetColor(color::foreground_chosen,color::background);
 		printf("Successfully scanned %s:\n", disk_path);
-		SetColor(0xF,0);
+		SetColor(color::foreground_default,color::background);
 		delete[] tmp;
 	}
 }
@@ -245,9 +252,9 @@ void update_database(){
 		memset(removed,0,sizeof(removed));
 		memset(renamed,0,sizeof(renamed));
 		memset(exist,0,sizeof(exist));
-		SetColor(0x02,0);
+		SetColor(color::foreground_chosen,color::background);
 		printf("Successfully updated disk %s.\n",disk_path);
-		SetColor(0xF,0);
+		SetColor(color::foreground_default,color::background);
 	}
 }
 string get_path(int x,int pos){
@@ -265,12 +272,12 @@ string get_path(int x,int pos){
 }
 void print_res(const File& tmp,bool selected=0){
 	if(selected==1){
-		SetColor(0x02,0);
+		SetColor(color::foreground_chosen,color::background);
 	}
 	else if(tmp.filesize == -1)
-		SetColor(0xB,0);
+		SetColor(color::foreground_folder,color::background);
 	else
-		SetColor(0xF,0);
+		SetColor(color::foreground_default,color::background);
 	cout<<"NAME: "<<tmp.filepath;
 	if(tmp.filesize!=-1)
 	cout<<"\nSIZE: "<<tmp.filesize<<"KB\n";
@@ -282,7 +289,7 @@ void print_res(const File& tmp,bool selected=0){
 	cout<<"    ";
 	print_time(tmp.AccessT);
 	cout<<"\n\n";
-	SetColor(0xF,0);
+	SetColor(color::foreground_default,color::background);
 }
 int restart_searching=0; //是否有字符的变化
 recursive_mutex mu; //线程互斥锁
@@ -306,10 +313,10 @@ void init_files() {
 		read_settings();//读入设置信息
 		read_info();    //读入USN64位ID和上次的最后一个USN
 		if(disk_num!=check_disk()){ //磁盘数量改变属于严重错误，应重新初始化
-			SetColor(0x04,0);
+			SetColor(0x04,color::background);
 			cout<<"Fatal Error: Change in disk number detected.\n";
 			cout<<"The program will rescan all your disks, this will take several minutes.\n";
-			SetColor(0xF,0);
+			SetColor(color::foreground_default,color::background);
 			is_first_run=1;
 		}
 		else {
@@ -371,11 +378,11 @@ void info::print() {
 	for(int i=1;i<=size;i++) {
 		SetPos(posx, posy+i-1);
 		if(cur_pt == i){
-			SetColor(0xB,0);
+			SetColor(color::foreground_buffer,color::background);
 			putchar('>');
 			cout<<info_str[i];
 			putchar('<');
-			SetColor(0xF,0);
+			SetColor(color::foreground_default,color::background);
 		}
 		else cout<<info_str[i];
 		putchar('\n');
@@ -538,7 +545,8 @@ void sear() {
 			}
 			if(match.match(data[x][i].filename)){
 				File tmp(data[x][i],x,disk+get_path(x,i));
-				if(!filters.match(tmp))continue;
+				if(switch_filters && !filters.match(tmp))
+					continue;
 				cnt++;
 				result.push_back(tmp);
 				if(on_screen<rpp)print_res(tmp);
@@ -560,9 +568,9 @@ void start_searching() {
 	char c;
 	page=1;
     system("cls");
-	SetColor(0xB,0);
+	SetColor(color::foreground_buffer,color::background);
 	cout<<"Input any word to start searching\n";
-	SetColor(0xF,0);
+	SetColor(color::foreground_default,color::background);
 	while(1) { //删除操作
 		c=getch();
 		show_egg();
@@ -625,14 +633,14 @@ void start_searching() {
         	if(fn_valume == 10)
 				page_now=1;
         	system("cls");
-			SetColor(0x02,0);
+			SetColor(color::foreground_chosen,color::background);
         	cout<<con_buffer<<endl;
-			SetColor(0xF,0);
+			SetColor(color::foreground_default,color::background);
         	cout<<"PAGE: "<<page_now<<endl;
         	for(int i=pa[page_now].l;i<pa[page_now].r;i++){
         		print_res(result[i]);
         	}
-			SetColor(0xF,0);
+			SetColor(color::foreground_default,color::background);
 			if(search_finished)
 				cout<<"#Search completed: Total "<<result.size()<<" results!\n\n";
 			continue;
@@ -672,17 +680,17 @@ void start_searching() {
             if(bufferlen==-1){//删干净了
             	page=1;
             	system("cls");
-				SetColor(0xB,0);
+				SetColor(color::foreground_buffer,color::background);
             	cout<<"Input any word to start searching\n";
-				SetColor(0xF,0);
+				SetColor(color::foreground_default,color::background);
             	continue;
             }
             else {
             	page=1;
             	system("cls");
-				SetColor(0x02,0);
+				SetColor(color::foreground_chosen,color::background);
             	cout<<con_buffer<<endl;
-				SetColor(0xF,0);
+				SetColor(color::foreground_default,color::background);
             	cout<<"PAGE: "<<page<<endl;
             	restart_searching=1;
             }
@@ -699,14 +707,14 @@ void start_searching() {
         			now_result=0;
         			page_now++;
         			system("cls");
-					SetColor(0x02,0);
+					SetColor(color::foreground_chosen,color::background);
         			cout<<con_buffer<<endl;
-					SetColor(0xF,0);
+					SetColor(color::foreground_default,color::background);
         			cout<<"PAGE: "<<page_now<<endl;
         			for(int i=pa[page_now].l;i<pa[page_now].r;i++){
         				print_res(result[i]);
         			}
-					SetColor(0xF,0);
+					SetColor(color::foreground_default,color::background);
 					if(search_finished)
 						cout<<"#Search completed: Total "<<result.size()<<" results!\n\n";
         			continue;
@@ -716,15 +724,15 @@ void start_searching() {
         		if(page_now!=1){ //当前页不是第一页才能执行翻页操作
         			now_result=0;
         			system("cls");
-					SetColor(0x02,0);
+					SetColor(color::foreground_chosen,color::background);
         			cout<<con_buffer<<endl;
-					SetColor(0xF,0);
+					SetColor(color::foreground_default,color::background);
         			page_now--;
         			cout<<"PAGE: "<<page_now<<endl;
         			for(int i=pa[page_now].l;i<pa[page_now].r;i++){
 						print_res(result[i]);
 					}
-					SetColor(0xF,0);
+					SetColor(color::foreground_default,color::background);
 					if(search_finished)
 						cout<<"#Search completed: Total "<<result.size()<<" results!\n\n";
 					continue;
@@ -736,9 +744,9 @@ void start_searching() {
         		if(now_result<pa[page_now].r-pa[page_now].l)now_result++;
         		else continue;
         		system("cls");
-				SetColor(0x02,0);
+				SetColor(color::foreground_chosen,color::background);
         		cout<<con_buffer<<endl;
-				SetColor(0xF,0);
+				SetColor(color::foreground_default,color::background);
         		cout<<"PAGE: "<<page_now<<endl;
         		for(int i=pa[page_now].l;i<pa[page_now].r;i++){
         			selected=0;
@@ -753,9 +761,9 @@ void start_searching() {
         		if(now_result>1) now_result--;
         		else continue;
         		system("cls");
-				SetColor(0x02,0);
+				SetColor(color::foreground_chosen,color::background);
         		cout<<con_buffer<<endl;
-				SetColor(0xF,0);
+				SetColor(color::foreground_default,color::background);
         		cout<<"PAGE: "<<page_now<<endl;
         		for(int i=pa[page_now].l;i<pa[page_now].r;i++){
         			selected=0;
@@ -783,9 +791,9 @@ void start_searching() {
         	}
 			QUIT_SORTING:
         	system("cls");
-			SetColor(0x02,0);
+			SetColor(color::foreground_chosen,color::background);
         	cout<<con_buffer<<endl;
-			SetColor(0xF,0);
+			SetColor(color::foreground_default,color::background);
         	cout<<"PAGE: "<<page_now<<endl;
         	now_result=0;
         	restart_searching=1;
@@ -808,14 +816,51 @@ void set_searching_filter() {
 		}
 		else if(window_result == 6)
 			filters.clear();
+		else if(window_result == 7)
+			switch_filters = !switch_filters;
 		else
 			return ;
 		filters.print();
+		cout<<(switch_filters?"Filters activated!":"Filters disabled.")<<endl;
 	}
 }
 void other_settings() {
-
-
+	int window_result; char ch;
+	int tmpa,tmpb,tmpc,tmpd, tmpe;
+	while(true) {
+		window_result = window_other_settings.run();
+		if(window_result == 1) {
+			puts("Please input a valid integer in range of 4~10");
+			cin>>rpp;
+		}
+		else if(window_result == 2) {
+			while(true) {
+				system("cls");
+				SetColor(color::foreground_default, color::background);
+				cout<<color::foreground_default<<' '; puts("Normal text.");
+				SetColor(color::foreground_chosen, color::background);
+				cout<<color::foreground_chosen<<' '; puts(">Chosen text.<");
+				SetColor(color::foreground_folder, color::background);
+				cout<<color::foreground_folder<<' '; puts("Folder.");
+				SetColor(color::foreground_buffer, color::background);
+				cout<<color::foreground_buffer<<' '; puts("Searching buffer."); 
+				SetColor(color::foreground_default, color::background);
+				puts("Input four valid integers (from 0 to 15) to set color");
+				puts("Each integer will control: Normal text, Chosen text, Folder, Searching buffer, and Background.");
+				puts("Input any invalid integer will quit this screen");
+				cin>>tmpa>>tmpb>>tmpc>>tmpd>>tmpe;
+				if(tmpa<0 || tmpa>0xF || tmpb<0 || tmpb>0xF || tmpc<0 || tmpc>0xF || tmpd<0 || tmpd>0xF || tmpe<0 || tmpe>0xF)
+					break;
+				color::foreground_default = tmpa;
+				color::foreground_chosen = tmpb;
+				color::foreground_folder = tmpc;
+				color::foreground_buffer = tmpd;
+				color::background = tmpe;
+			}
+		}
+		else
+			break;
+	}
 }
 void init_windows() {
 	SetTitle("A GOOD LOCAL FILE SEARCHER");
@@ -835,6 +880,7 @@ void init_windows() {
 	window_filters.add_string("Ignore a Specific Path");
 	window_filters.add_string("Only search in a Specific Path(will cover the last filter!)");
 	window_filters.add_string("Erase all");
+	window_filters.add_string("Active/Disable the filters while searching");
 	window_filters.add_string("Back");
 	window_filters.setPos(60, 14);
 	// Sorting mode setting window:
@@ -849,7 +895,10 @@ void init_windows() {
 	window_sorting.add_string("Access time - Descending order");
 	window_sorting.setPos(60, 14);
 	// Other settings window:
-	window_other_settings.add_string("");
+	window_other_settings.add_string("Set results per page");
+	window_other_settings.add_string("Set theme and colors");
+	window_other_settings.add_string("Back");
+	window_other_settings.setPos(60, 14);
 }
 void mainwindow() {
 	int window_result;
