@@ -47,10 +47,10 @@ class NFA {
 		void addedge_without_adding_in_charpool(int stpoint, int destpoint, char dir);
 		void debug() ;
 		void clear() ;
-		int size; //默认起始点st为节点0,dest节点为1 
+		int size; //节点总数。默认起始点st为节点0, dest节点为1 
 		map<char,int> head[NFA_MAX_SIZE];  //link[i][A] = j : 状态i读入字符A后进入状态j，定义空包为'\0',else包为'\1' 
 		//else包的定义：遇到了charpool外的任何字符时，走这条边
-		int pos[NFA_MAX_LSTSIZE], nxt[NFA_MAX_LSTSIZE], cnt; //邻接表 
+		int pos[NFA_MAX_LSTSIZE], nxt[NFA_MAX_LSTSIZE], cnt; //邻接表，存储有向边 
 		set<char> charpool; //储存所有字符，特别地，'\1'属于charpool当且仅当存在排除运算 
 };
 class DFA {
@@ -303,7 +303,7 @@ bool NFA::read_reg (char *reg, int L, int R, int start_point, int dest_point, bo
 	}
 	while(reg[L] == '(' && R == get_next_pos(reg,L)) //去括号 
 		L++, R--;
-	if(L>R) { //���У��մ���ɶҲ���� 
+	if(L>R) { //修bug：空串时怎么办
 		return true;
 	}
 	//from start_point to dest_point : [reg] route 
@@ -492,7 +492,7 @@ bool DFA::match (char *str) {
 	for(int i=0;i<len;i++) {
 		if(str[i] < 0) { //检测到中文 
 			if(charpool.find(str[i])==charpool.end() || charpool.find(str[i+1])==charpool.end() ||
-			  lnk[current][str[i]] != -1 || lnk[lnk[current][str[i]]][str[i+1]] != -1) //中文不匹配，走else包 
+			  lnk[current][str[i]] == -1 || lnk[lnk[current][str[i]]][str[i+1]] == -1) //中文不匹配，走else包 
 				current = lnk[current][('\1')];
 			else
 				current = lnk[lnk[current][str[i]]][str[i+1]];//中文沿边行进 
