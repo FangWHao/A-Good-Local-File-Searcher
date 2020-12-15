@@ -612,8 +612,8 @@ void start_searching() {
 						F5_flag=1;
 						cout<<"Sorting mode = "<<sorting_mode<<" ;"<<(switch_filters?"Filters activated":"Filters disabled")<<endl;
 						cout<<"Press F2 to select sorting mode.\n";\
-						cout<<"If you want to set filters, please press ESC to return to main menu\n";
-						cout<<"For more information, press F1 to open manual\n";
+						cout<<"If you want to set filters, please press ESC to return to main menu.\n";
+						cout<<"For more information, press F1 to open manual.\n";
 					}
 					continue;
 				case 1: //help
@@ -836,7 +836,7 @@ void init_windows() {
 	window_filters.add_string("Only search in a Specific Path(will cover the last filter!)");
 	window_filters.add_string("Erase all");
 	window_filters.add_string("Back");
-	window_filters.setPos(40, 13);
+	window_filters.setPos(60, 14);
 	// Sorting mode setting window:
 	window_sorting.add_string("Close the sorting function");
 	window_sorting.add_string("Size - Ascending order");
@@ -847,6 +847,7 @@ void init_windows() {
 	window_sorting.add_string("Write time - Descending order");
 	window_sorting.add_string("Access time - Ascending order");
 	window_sorting.add_string("Access time - Descending order");
+	window_sorting.setPos(60, 14);
 	// Other settings window:
 	window_other_settings.add_string("");
 }
