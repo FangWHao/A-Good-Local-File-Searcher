@@ -554,6 +554,7 @@ void sear() {
 	goto FINISH;//万一搜索完了就返回第一行，不能退出！
 }
 void start_searching() {
+	bool F5_flag=0;
 	port_searching = 0;
 	unport_searching = 1;
 	char c;
@@ -566,8 +567,6 @@ void start_searching() {
 		c=getch();
 		show_egg();
 		bool is_changed=0;
-		// cout<<(int)c<<endl;
-		// _sleep(1000);
 		if(c==0) { //按Fn键组切换排序方式与筛选器开关
 			int fn_valume = getch() - 58;
 			// cout<<"DDDD   "<<fn_valume<<endl;
@@ -592,11 +591,6 @@ void start_searching() {
 						}
 						system("cls");
 						puts("Sorting begin!");
-						//getchar();
-						// puts("qian");
-						// for(int i=0;i<result.size();i++)
-						// 	cout<<result[i].filename<<endl;
-						// puts("qian");
 						switch(sorting_mode) {
 							case 2:  merge_sort(result, size_cmp_s); break;
 							case 3: merge_sort(result, size_cmp_l); break;
@@ -607,11 +601,6 @@ void start_searching() {
 							case 8:  merge_sort(result, AccessT_cmp_s); break;
 							case 9: merge_sort(result, AccessT_cmp_l); break;
 						}
-						// puts("hou");
-						// for(int i=0;i<result.size();i++)
-						// 	cout<<result[i].filename<<endl;
-						// puts("hou");
-						//while(1);
 						puts("Sorting completed!");
 						fileh_switch_debug = 0;
 					}
@@ -619,12 +608,19 @@ void start_searching() {
 						puts("Search hasn't finished. Please wait...");
 					break;
 				case 5:
-					cout<<"Sorting mode = "<<sorting_mode<<" ;"<<(switch_filters?"Filters activated":"Filters disabled")<<endl;
-					break;
+					if(!F5_flag){//上次如果按了F5就不要再输出了
+						F5_flag=1;
+						cout<<"Sorting mode = "<<sorting_mode<<" ;"<<(switch_filters?"Filters activated":"Filters disabled")<<endl;
+						cout<<"Press F2 to select sorting mode.\n";\
+						cout<<"If you want to set filters, please press ESC to return to main menu\n";
+						cout<<"For more information, press F1 to open manual\n";
+					}
+					continue;
 				case 1: //help
 					ShellExecute(NULL, _T("open"), _T("help.txt"), NULL, NULL, SW_SHOW);
 					break;
 			}
+			F5_flag=0;
 			now_result=0;
         	if(fn_valume == 10)
 				page_now=1;
