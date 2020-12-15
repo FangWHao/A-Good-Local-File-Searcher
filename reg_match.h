@@ -79,10 +79,10 @@ class DFA {
 
 class project: private NFA, private DFA { //整个工程使用一个class，可调用正则表达式读入和匹配两个函数 
 public: 
-	bool read_reg(char *str, bool switch_debug) ;
-	void read_reg(int reg_max_size, bool switch_debug) ;
-	bool match(char *str) ;
-	void clear() ;
+	bool read_reg(char *str, bool switch_debug) ; //给定正则表达式，直接装载，表达式非法返回false
+	void read_reg(int reg_max_size, bool switch_debug) ; //输入正则表达式然后装载（有判定函数）
+	bool match(char *str) ; //字符串匹配
+	void clear() ; //清空
 };
 
 void read_string(char *str);
@@ -252,11 +252,18 @@ split_result split(char *reg,int L,int R) {
 	return ret;
 	//无运算 
 }
-struct hidden_edge_node {
-	int left_bound, right_bound; //存储排除的字符：position in reg[]
-	int u,v; //u->v连边 
+struct hidden_edge_node { //隐边结构体
+	int left_bound, right_bound; //存储排除的字符：位于reg[left_bound]和reg[right_bound]之间
+	int u,v; //我们要以u->v方向连边 
 };
-queue<hidden_edge_node> hidden_edge;
+queue<hidden_edge_node> hidden_edge;//隐边要在所有其他边都读取完毕之后再行连接
+/*
+用递归、二分方法将正则表达式装载入自动机
+reg: 正则表达式字符串
+L, R: 切割的字符子串
+start_point, dest_point: 欲用字符子串连接的两节点
+is_birth: 是否需要初始化
+*/
 bool NFA::read_reg (char *reg, int L, int R, int start_point, int dest_point, bool is_birth) {
 	if(!check_reg(reg)) {
 		return false;
@@ -267,7 +274,7 @@ bool NFA::read_reg (char *reg, int L, int R, int start_point, int dest_point, bo
 			hidden_edge.pop();
 	if(is_birth && reg[L] == '^') //检测上标 
 		L++;
-	else if(is_birth) {
+	else if(is_birth) { //若不存在上标，装填(^)*
 		int klpt1 = ++size, klpt2 = ++size, newstpt = ++size;
 		
 		hidden_edge_node current_edge;
@@ -285,7 +292,7 @@ bool NFA::read_reg (char *reg, int L, int R, int start_point, int dest_point, bo
 	}
 	if(is_birth && reg[R] == '$' && reg[R-1] != '\\') //检测下标 
 		R--;
-	else if(is_birth) {
+	else if(is_birth) { //若不存在下标，装填(^)*
 		int klpt1 = ++size, klpt2 = ++size, newdespt = ++size;
 		
 		hidden_edge_node current_edge;
@@ -303,11 +310,11 @@ bool NFA::read_reg (char *reg, int L, int R, int start_point, int dest_point, bo
 	}
 	while(reg[L] == '(' && R == get_next_pos(reg,L)) //去括号 
 		L++, R--;
-	if(L>R) { //修bug：空串时怎么办
+	if(L>R) { //若字符串为空则不进行处理
 		return true;
 	}
 	//from start_point to dest_point : [reg] route 
-	split_result ret = split(reg,L,R);
+	split_result ret = split(reg,L,R); //调用切割函数
 	if(ret.mode == 0) { //单字符，开始连边 
 		if(ret.leftL != ret.leftR && (ret.leftL != ret.leftR-1 || reg[ret.leftL] != '\\')) {
 			puts("Error 1 in read_reg!!"); //多字符出现 
@@ -315,13 +322,13 @@ bool NFA::read_reg (char *reg, int L, int R, int start_point, int dest_point, bo
 		}
 		addedge(start_point,dest_point,reg[ret.leftR]);
 	}
-	else if(ret.mode == 1) {
+	else if(ret.mode == 1) { //连接运算
 		int mid = ++size;
 		// start_point --left--> mid, mid --right--> dest_point
 		read_reg(reg, ret.leftL,ret.leftR, start_point,mid, false);
 		read_reg(reg, ret.rightL,ret.rightR, mid,dest_point, false);
 	}
-	else if(ret.mode == 2) {
+	else if(ret.mode == 2) { //联合运算
 		int unpt1=++size, unpt2=++size, unpt3=++size, unpt4=++size;
 		read_reg(reg, ret.leftL,ret.leftR, unpt1,unpt2, false);
 		read_reg(reg, ret.rightL,ret.rightR, unpt3,unpt4, false);
@@ -330,7 +337,7 @@ bool NFA::read_reg (char *reg, int L, int R, int start_point, int dest_point, bo
 		addedge(unpt2,dest_point,'\0');
 		addedge(unpt4,dest_point,'\0');
 	}
-	else if(ret.mode == 3) {
+	else if(ret.mode == 3) { //Kleene闭包运算
 		int klpt1 = ++size, klpt2 = ++size;
 		read_reg(reg, ret.leftL,ret.leftR, klpt1, klpt2, false);
 		addedge(start_point, klpt1,'\0');
@@ -348,8 +355,7 @@ bool NFA::read_reg (char *reg, int L, int R, int start_point, int dest_point, bo
 		hidden_edge.push(current_edge);
 		for(int i=ret.leftL;i<=ret.leftR;i++)
 			charpool.insert(reg[i]);
-		
-		printf(" hidden edge signed:  %d %d %d %d\n", start_point, dest_point, ret.leftL, ret.leftR);
+		//printf(" hidden edge signed:  %d %d %d %d\n", start_point, dest_point, ret.leftL, ret.leftR);
 	}
 	else {
 		puts("ERROR in NFA::read_reg : invalid split return mode!");
@@ -364,6 +370,7 @@ bool NFA::read_reg (char *reg, int L, int R, int start_point, int dest_point, bo
 			current_edge = hidden_edge.front();
 			hidden_edge.pop();
 			for(charpool_iter = charpool.begin(); charpool_iter != charpool.end(); charpool_iter++) {
+				//如果发现charpool中存在未被排除项，则直接连边
 				hidden_edge_flag = true;
 				for(int i=current_edge.left_bound; i<=current_edge.right_bound; i++) {
 					if(*charpool_iter == reg[i])
@@ -375,7 +382,7 @@ bool NFA::read_reg (char *reg, int L, int R, int start_point, int dest_point, bo
 			}
 			addedge_without_adding_in_charpool(current_edge.u, current_edge.v, '\1'); //连else边 
 		}
-		if(add_else_pack_flag)
+		if(add_else_pack_flag) //如果连接了隐边，将else包压入charpool
 			charpool.insert('\1');
 	}
 	return true;
@@ -487,15 +494,17 @@ void read_string(char *str) { //输入一个字符串，忽略空格
 
 bool DFA::match (char *str) {
 	int len = strlen(str), current = 1;
-	if(is_end[current]) //DFA是空的 
+	if(is_end[current]) //发现DFA是空的 
 		return true;
 	for(int i=0;i<len;i++) {
 		if(str[i] < 0) { //检测到中文 
-			if(charpool.find(str[i])==charpool.end() || charpool.find(str[i+1])==charpool.end() ||
-			  lnk[current][str[i]] == -1 || lnk[lnk[current][str[i]]][str[i+1]] == -1) //中文不匹配，走else包 
+			if(charpool.find(str[i])==charpool.end() || charpool.find(str[i+1])==charpool.end())
+				//中文不匹配，走else包 
 				current = lnk[current][('\1')];
-			else
+			else if(lnk[current][str[i]] != -1)
 				current = lnk[lnk[current][str[i]]][str[i+1]];//中文沿边行进 
+			else
+				current = -1;
 			i++;//中文有两个字符 
 		}
 		else {
@@ -615,34 +624,6 @@ set<int> get_closure(NFA &bas_nfa, set<int> &bas_set, char key0) { //寻找bas_s
 set<int> get_e_closure(NFA &bas_nfa, set<int> &bas_set) { //方便调用 
 	return get_closure(bas_nfa, bas_set,'\0');
 }
-set<int> get_closure(NFA &bas_nfa, set<int> &bas_set, char key0, char key1) { //寻找双字符闭包的函数（未使用） 
-	set<int> ret;
-	set<int>::iterator iter;
-	pair<set<int>::iterator,bool> getret;
-	queue<int> bfsq;
-	int tmp, u;
-	for(iter = bas_set.begin();iter != bas_set.end(); iter++) {
-//		cout<<"sssdfg  "<<*iter<<endl;
-		if(ret.find(*iter) != ret.end()) {
-			continue;
-		}
-		while(!bfsq.empty()) //queue居然没有clear()...气抖冷 
-			bfsq.pop();
-		bfsq.push(*iter);
-		while(!bfsq.empty()) {
-			tmp = bfsq.front();
-			bfsq.pop();
-			getret = ret.insert(tmp);
-			if(getret.second == false)
-				continue;
-			for(u=bas_nfa.head[tmp][key0];u!=0;u=bas_nfa.nxt[u])
-				bfsq.push(bas_nfa.pos[u]);
-			for(u=bas_nfa.head[tmp][key1];u!=0;u=bas_nfa.nxt[u])
-				bfsq.push(bas_nfa.pos[u]);
-		}
-	}
-	return ret;
-}
 set<int> move(NFA &bas_nfa, set<int> &bas_set, char keyc) { 
 //move(keyc)函数：得到bas_set点集的所有点跑一次keyc边之后的可能目的地形成的点集  
 	set<int> ret;
@@ -708,9 +689,9 @@ void DFA::transform_NFA_to_DFA(NFA &bas_nfa) { //转换函数
 }
 
 void project::read_reg (int reg_max_size, bool switch_debug) {
-	project::clear();
+	project::clear(); //读入之前先把原来的东西清除
 	char *reg = new char[reg_max_size+2];
-	read_string(reg);
+	read_string(reg); //现读入正则表达式
 	while(NFA::read_reg(reg,0,strlen(reg)-1,0,1,true) == false) {
 		puts("Invalid regular expression!");
 		read_string(reg);
@@ -722,7 +703,7 @@ void project::read_reg (int reg_max_size, bool switch_debug) {
 		DFA::debug();
 }
 bool project::read_reg (char *reg, bool switch_debug) {
-	project::clear();
+	project::clear(); //读入之前先把原来的东西清除
 	if(NFA::read_reg(reg,0,strlen(reg)-1,0,1,true) == false)
 		return false;
 	if(switch_debug)
