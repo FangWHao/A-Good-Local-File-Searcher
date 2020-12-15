@@ -580,7 +580,10 @@ void start_searching() {
 							cout<<"The program is still searching results, please wait.\n";
 							cout<<"If you want to quit sorting, please press ESC button\n";
 							char cc;
-							while(cc=getch()){
+							while(1){
+								if(search_finished)break;
+								if(!kbhit())continue;
+								cc=getche();
 								if(cc=27){
 									goto QUIT_SORTING;
 								}
