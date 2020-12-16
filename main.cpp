@@ -1,3 +1,4 @@
+  
 #include <iostream>
 #include <cstdio>
 #include <windows.h>
@@ -592,6 +593,7 @@ void start_searching() {
 								if(search_finished)break;
 								if(!kbhit())continue;
 								cc=getche();
+								if(cc==0||cc==-32)cc=getche();//艹可能会有输入奇妙的符号的操作
 								if(cc=27){
 									goto QUIT_SORTING;
 								}
@@ -637,6 +639,7 @@ void start_searching() {
         	cout<<con_buffer<<endl;
 			SetColor(color::foreground_default,color::background);
         	cout<<"PAGE: "<<page_now<<endl;
+        	if(pa.size()!=1)
         	for(int i=pa[page_now].l;i<pa[page_now].r;i++){
         		print_res(result[i]);
         	}
@@ -711,6 +714,7 @@ void start_searching() {
         			cout<<con_buffer<<endl;
 					SetColor(color::foreground_default,color::background);
         			cout<<"PAGE: "<<page_now<<endl;
+        			if(pa.size()!=1)
         			for(int i=pa[page_now].l;i<pa[page_now].r;i++){
         				print_res(result[i]);
         			}
@@ -729,6 +733,7 @@ void start_searching() {
 					SetColor(color::foreground_default,color::background);
         			page_now--;
         			cout<<"PAGE: "<<page_now<<endl;
+        			if(pa.size()!=1)
         			for(int i=pa[page_now].l;i<pa[page_now].r;i++){
 						print_res(result[i]);
 					}
