@@ -891,7 +891,6 @@ void start_searching()
 					}
 					system("cls");
 					puts("Sorting begin!");
-					sorting_mode = 1;
 					switch (sorting_mode)
 					{
 					//case 1: sim_sort(data[0],con_buffer);
