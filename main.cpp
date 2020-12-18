@@ -116,9 +116,6 @@ bool check_local()
 	return 0;
 }
 
-void read_settings()
-{ //读取本地存储的设置文件
-}
 int check_disk()
 { //检查本地磁盘数量
 	//可能存在的潜在bug:ntfs格式磁盘不连续时会跳过末尾的磁盘
@@ -366,7 +363,6 @@ void init_files()
 	}
 	else
 	{					 //判定是否出现不合法信息，若出现则当作第一次运行处理
-		read_settings(); //读入设置信息
 		read_info();	 //读入USN64位ID和上次的最后一个USN
 		if (disk_num != check_disk())
 		{ //磁盘数量改变属于严重错误，应重新初始化
@@ -548,7 +544,28 @@ public:
 				cout << "Searching path: " << filters[i].filter_str << "\n\n";
 				break;
 			}
-		getch();
+	}
+	void file_print(ofstream &fout) {
+		fout<<endl<<size<<endl;
+		for(int i=1;i<=size;i++) {
+			fout<<filters[i].filter_type<<' ';
+			if(filters[i].filter_type == 3 || filters[i].filter_type == 4 || filters[i].filter_type == 5)
+				fout<<filters[i].filter_str;
+			fout<<endl;
+		}
+	}
+	void file_read(ifstream &fin) {
+		int i, filter_type; fin>>i;
+		string filter_str;
+		while(i--) {
+			fin>>filter_type;
+			if(filter_type == 3 || filter_type == 4 || filter_type == 5) {
+				fin>>filter_str;
+				addfilter(filter_type, filter_str);
+			}
+			else
+				addfilter(filter_type);
+		}
 	}
 	bool match(File matching_file);
 	void clear() { size = 0; }
@@ -863,10 +880,10 @@ void start_searching()
 				break;
 			}
 			case 2:
-				sorting_mode = window_sorting.run();
+				sorting_mode = window_sorting.run()-1;
 				break;
 			case 10:
-				if (sorting_mode != 1)
+				if (sorting_mode != 0)
 				{ //满足条件时对结果进行排序
 					fileh_switch_debug = 1;
 					if (!search_finished)
@@ -891,9 +908,11 @@ void start_searching()
 					}
 					system("cls");
 					puts("Sorting begin!");
+					//sorting_mode = 1;
 					switch (sorting_mode)
 					{
-					//case 1: sim_sort(data[0],con_buffer);
+					case 1:
+						merge_sort(result, Name_cmp_s);
 					case 2:
 						merge_sort(result, size_cmp_s);
 						break;
@@ -1178,6 +1197,8 @@ void set_searching_filter()
 			return;
 		filters.print();
 		cout << (switch_filters ? "Filters activated!" : "Filters disabled.") << endl;
+		puts("Press any botton to continue...");
+		getch();
 	}
 }
 void other_settings()
@@ -1238,7 +1259,7 @@ void init_windows()
 	window_main.add_string("Start Searching");
 	window_main.add_string("Set Searching Fliter");
 	window_main.add_string("Other Settings");
-	window_main.add_string("Quit");
+	window_main.add_string("Save & Quit");
 	window_main.setPos(60, 14);
 	// filters settings window:
 	window_filters.add_string("Ignore Folders");
@@ -1252,6 +1273,7 @@ void init_windows()
 	window_filters.setPos(60, 14);
 	// Sorting mode setting window:
 	window_sorting.add_string("Close the sorting function");
+	window_sorting.add_string("Name - Ascending order");
 	window_sorting.add_string("Size - Ascending order");
 	window_sorting.add_string("Size - Descending order");
 	window_sorting.add_string("Create time - Ascending order");
@@ -1267,9 +1289,29 @@ void init_windows()
 	window_other_settings.add_string("Back");
 	window_other_settings.setPos(60, 14);
 }
+void read_settings() {
+	ifstream fin("Settings.db");
+	if(!fin.is_open())
+		return ;
+	fin>>color::foreground_default>>color::foreground_chosen>>
+		color::foreground_folder>>color::foreground_buffer>>color::background;
+	fin>>rpp>>sorting_mode>>switch_filters;
+	filters.file_read(fin);
+	fin.close();
+}
+void save_settings() {
+	ofstream fout;
+	fout.open("Settings.db",ios::trunc);
+	fout<<color::foreground_default<<' '<<color::foreground_chosen<<' '<<
+		color::foreground_folder<<' '<<color::foreground_buffer<<' '<<color::background<<endl;
+	fout<<rpp<<' '<<sorting_mode<<' '<<switch_filters<<endl;
+	filters.file_print(fout);
+	fout.close();
+}
 void mainwindow()
 {
 	int window_result;
+	read_settings();
 	while (1)
 	{
 		window_result = window_main.run();
@@ -1285,6 +1327,7 @@ void mainwindow()
 			other_settings();
 			break;
 		default:
+			save_settings();
 			return;
 		}
 	}
