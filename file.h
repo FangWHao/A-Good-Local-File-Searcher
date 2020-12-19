@@ -50,9 +50,6 @@ public:
 		filename = new char[len];
 		strcpy(filename, a.filename);
 	}
-	~dat(){
-		delete[] filename;
-	}
 	double Cosine_Similarity(const char *);
 };
 double dat::Cosine_Similarity(const char *s)
@@ -129,16 +126,30 @@ public:
 		rnum = a.rnum;
 		prnum = a.prnum;
 		ppos = a.ppos;
+		// if(filename == NULL)
+		// 	cout<<"IIIIIIIII";
+		// if(filename != NULL && fileh_switch_debug)
+		// 	cout<<"Fu~zhi~hanshu0  "<<strlen(filename)<<"    "<<filename<<endl;
 		if (filename != NULL)
 			delete[] filename;
 		filename = new char[len];
 		strcpy(filename, a.filename);
+		// if(fileh_switch_debug)
+		// 	cout<<"Fu~zhi~hanshu1  "<<a.filename<<"    "<<strlen(a.filename)<<endl;
+		// if(fileh_switch_debug)
+		// 	cout<<"Fu~zhi~hanshu2  "<<filename<<"    "<<strlen(filename)<<endl;
 		filepath = a.filepath;
 		filesize = a.filesize;
 		CreatT = a.CreatT;
 		AccessT = a.AccessT;
 		WriteT = a.WriteT;
 		disk = a.disk;
+	}
+	~File()
+	{
+		// if(fileh_switch_debug)
+		// 	cout<<"Xigou  "<<filename<<"    "<<strlen(filename)<<endl;
+		delete[] filename;
 	}
 };
 LARGE_INTEGER get_size(const char *filepath)
@@ -189,6 +200,8 @@ char *GetClipboard()
 			lpStr = (char *)::GlobalLock(hMem);
 			if (NULL != lpStr)
 			{
+				//MessageBox(0, lpStr, "", 0);
+				cout << lpStr << endl;
 				::GlobalUnlock(hMem);
 			}
 		}
@@ -239,18 +252,27 @@ bool WriteT_cmp_s(File a, File b)
 {
 	return Time_cmp(a.WriteT, b.WriteT);
 }
+bool Name_cmp_s(File a, File b) {
+	return strcmp(a.filename, b.filename);
+}
 void merge_sort1(int l, int r, bool cmp(File, File), vector<File> &vec);
 File *tmp;
 void merge_sort(vector<File> &vec, bool cmp(File, File))
 {
+	//cout<<"Fuck"<<endl;
 	tmp = new File[vec.size()];
+	//cout<<"Holy 1"<<endl;
 	merge_sort1(0, vec.size() - 1, cmp, vec);
+	//cout<<"shit"<<endl;
 	delete[] tmp;
 }
 void merge_sort1(int l, int r, bool cmp(File, File), vector<File> &vec)
 {
+	//cout<<l<<' '<<r<<endl;
+	//getchar();
 	if (l == r)
 	{
+		//cout<<"Holy 2"<<endl;
 		tmp[l] = vec[l];
 		return;
 	}
@@ -261,14 +283,18 @@ void merge_sort1(int l, int r, bool cmp(File, File), vector<File> &vec)
 	while (lp <= m && rp <= r)
 	{
 		if (cmp(tmp[lp], tmp[rp]))
+		{
+			//cout<<"Holy 3"<<endl;
 			vec[p++] = tmp[lp++];
-		else vec[p++] = tmp[rp++];
+		}
+		else //cout<<"Holy 4"<<endl,
+			vec[p++] = tmp[rp++];
 	}
-	while (lp <= m)
+	while (lp <= m) //cout<<"Holy 5"<<endl,
 		vec[p++] = tmp[lp++];
-	while (rp <= r)
+	while (rp <= r) //cout<<"Holy 6"<<endl,
 		vec[p++] = tmp[rp++];
-	for (int i = l; i <= r; i++)
+	for (int i = l; i <= r; i++) //cout<<"Holy 7"<<endl,
 		tmp[i] = vec[i];
 }
 // void merge_sort(vector<File> &vec, bool cmp(File,File)) {
