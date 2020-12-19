@@ -48,7 +48,7 @@ bool is_chinese[10000];
 int bufferlen = -1, now_result = 0;
 int rpp = 5;			//result per page
 int sim_tot = 30;		//模糊搜索的总结果数
-double threshold = 0.1; //模糊匹配阈值
+double threshold = 0.8; //模糊匹配阈值
 project match;
 struct Page
 {
@@ -862,19 +862,28 @@ void start_searching()
 			{
 			case 3:
 			{
-				//cout<<"fufufu"<<endl;
-				//getchar();
+				system("cls");
+				SetColor(color::foreground_chosen, color::background);
+				cout << con_buffer << endl;
+				SetColor(color::foreground_default, color::background);
 				return_to_main = 1; //停止搜索进程
 				Stop_sim_sort = 0;
 				thread task02(sim_sort); //新建搜索线程
 				task02.detach();		 //分离出线程
 				char cc;
-				while (cc = getch())
+				int is_print_info=0;
+				while (1)
 				{
+					cc=getche();
 					if (cc == 27)
 					{
 						Stop_sim_sort = 1;
 						goto QUIT_SORTING;
+					}
+					else if(!is_print_info){
+						is_print_info=1;
+						cout<<"Program is still running backwards, please wait for the program to get results.\n";
+						cout<<"If you want to quit sorting, please press ESC.\n";
 					}
 				}
 				break;
@@ -908,7 +917,6 @@ void start_searching()
 					}
 					system("cls");
 					puts("Sorting begin!");
-					//sorting_mode = 1;
 					switch (sorting_mode)
 					{
 					case 1:
