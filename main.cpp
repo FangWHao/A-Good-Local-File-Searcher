@@ -62,6 +62,7 @@ struct Page
 vector<Page> pa;
 
 void mainwindow();
+void save_settings();
 void read_egg()
 {
 	srand(time(0));
@@ -1188,6 +1189,7 @@ void set_searching_filter()
 	string tmp;
 	while (1)
 	{
+		save_settings();
 		window_result = window_filters.run();
 		if (window_result == 1 || window_result == 2)
 			filters.addfilter(window_result);
@@ -1216,41 +1218,66 @@ void other_settings()
 	int tmpa, tmpb, tmpc, tmpd, tmpe;
 	while (true)
 	{
+		save_settings();
 		window_result = window_other_settings.run();
-		if (window_result == 1)
+		if(window_result == 1) {
+			int _threshold, _sim_tot;
+			puts("Please input the thresold(double) and number of results per page of simsort(int)");
+			cin>>_threshold>>_sim_tot;
+			if(threshold <= 0 || threshold >= 1)
+				puts("Fail: Threshold should be in the range of (0,1)");
+			if(_sim_tot<=0 || _sim_tot>50)
+				puts("Fail: Results per page should be in the range of [1,50]");
+			if(threshold <= 0 || threshold >= 1 || _sim_tot<=0 || _sim_tot>50)
+				continue;
+			threshold = _threshold;
+			sim_tot = _sim_tot;
+		}
+		else if (window_result == 2)
 		{
 			puts("Please input a valid integer in range of 4~10");
 			cin >> rpp;
 		}
-		else if (window_result == 2)
+		else if (window_result == 3)
 		{
 			while (true)
 			{
 				system("cls");
 				SetColor(color::foreground_default, color::background);
 				cout << color::foreground_default << ' ';
-				puts("Normal text.");
+				puts("Normal text.      Input number 1 to change..");
 				SetColor(color::foreground_chosen, color::background);
 				cout << color::foreground_chosen << ' ';
-				puts(">Chosen text.<");
+				puts(">Chosen text.<       Input number 2 to change..");
 				SetColor(color::foreground_folder, color::background);
 				cout << color::foreground_folder << ' ';
-				puts("Folder.");
+				puts("Folder.       Input number 3 to change..");
 				SetColor(color::foreground_buffer, color::background);
 				cout << color::foreground_buffer << ' ';
-				puts("Searching buffer.");
+				puts("Searching buffer.       Input number 4 to change..");
 				SetColor(color::foreground_default, color::background);
-				puts("Input four valid integers (from 0 to 15) to set color");
-				puts("Each integer will control: Normal text, Chosen text, Folder, Searching buffer, and Background.");
-				puts("Input any invalid integer will quit this screen");
-				cin >> tmpa >> tmpb >> tmpc >> tmpd >> tmpe;
-				if (tmpa < 0 || tmpa > 0xF || tmpb < 0 || tmpb > 0xF || tmpc < 0 || tmpc > 0xF || tmpd < 0 || tmpd > 0xF || tmpe < 0 || tmpe > 0xF)
+				SetColor(color::foreground_default, color::background);
+				cout << color::background << ' ';
+				puts("Background.      Input number 5 to change..");
+				SetColor(color::foreground_chosen, color::background);
+				puts("Input any corresponding integer and the ID of color you want to change to (integer, [0,14]) to change color.");
+				cin >> tmpa >> tmpb;
+				if(tmpb<0 || tmpb>15) {
+					puts("Invalid color ID!");
+					continue ;
+				}
+				if(tmpa == 1)
+					color::foreground_default = tmpb;
+				else if(tmpa == 2)
+					color::foreground_chosen = tmpb;
+				else if(tmpa == 3)
+					color::foreground_folder = tmpb;
+				else if(tmpa == 4)
+					color::foreground_buffer = tmpb;
+				else if(tmpa == 5)
+					color::background = tmpb;
+				else
 					break;
-				color::foreground_default = tmpa;
-				color::foreground_chosen = tmpb;
-				color::foreground_folder = tmpc;
-				color::foreground_buffer = tmpd;
-				color::background = tmpe;
 			}
 		}
 		else
@@ -1292,6 +1319,7 @@ void init_windows()
 	window_sorting.add_string("Access time - Descending order");
 	window_sorting.setPos(60, 14);
 	// Other settings window:
+	window_other_settings.add_string("Simsort settings");
 	window_other_settings.add_string("Set results per page");
 	window_other_settings.add_string("Set theme and colors");
 	window_other_settings.add_string("Back");
@@ -1330,9 +1358,11 @@ void mainwindow()
 			break;
 		case 2:
 			set_searching_filter();
+			save_settings();
 			break;
 		case 3:
 			other_settings();
+			save_settings();
 			break;
 		default:
 			save_settings();
