@@ -362,6 +362,9 @@ void init_files()
 	{
 		printf("This is your first run, program needs some time to initialize.\n");
 		printf("Scanning, please wait several minutes.\n");
+		SetColor(0x04, color::background);
+		printf("Please close all anti-virus program running background\n");
+		SetColor(color::foreground_default, color::background);
 	}
 	else
 	{					 //判定是否出现不合法信息，若出现则当作第一次运行处理
