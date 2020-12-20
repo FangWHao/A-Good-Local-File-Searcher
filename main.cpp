@@ -67,7 +67,7 @@ void read_egg()
 {
 	srand(time(0));
 	string tmp;
-	ifstream fin("database\\egg.db");
+	ifstream fin("egg.db");
 	while (getline(fin, tmp))
 	{
 		egg.emplace_back(tmp);
@@ -1226,13 +1226,13 @@ void other_settings()
 		if(window_result == 1) {
 			double _threshold;
 			int _sim_tot;
-			puts("Please input the thresold(double) and number of results per page of simsort(int)");
+			puts("Please input the thresold(double) between 0~1 and number of results per page of simsort(int) between 1~50");
 			cin>>_threshold>>_sim_tot;
-			if(threshold <= 0 || threshold >= 1)
+			if(_threshold <= 0 || _threshold >= 1)
 				puts("Fail: Threshold should be in the range of (0,1)");
 			if(_sim_tot<=0 || _sim_tot>50)
 				puts("Fail: Results per page should be in the range of [1,50]");
-			if(threshold <= 0 || threshold >= 1 || _sim_tot<=0 || _sim_tot>50) {
+			if(_threshold <= 0 || _threshold >= 1 || _sim_tot<=0 || _sim_tot>50) {
 				getch();
 				continue;
 			}
@@ -1241,8 +1241,10 @@ void other_settings()
 		}
 		else if (window_result == 2)
 		{
+			RE_INPUT:
 			puts("Please input a valid integer in range of 4~10");
 			cin >> rpp;
+			if(rpp<4||rpp>10)goto RE_INPUT;
 		}
 		else if (window_result == 3)
 		{
@@ -1267,6 +1269,7 @@ void other_settings()
 				puts("Background.      Input number 5 to change..");
 				SetColor(color::foreground_chosen, color::background);
 				puts("Input any corresponding integer and the ID of color you want to change to (integer, [0,14]) to change color.");
+				puts("Input 0 0 to return to last menu\n");
 				cin >> tmpa >> tmpb;
 				if(tmpb<0 || tmpb>15) {
 					puts("Invalid color ID!");
@@ -1283,6 +1286,7 @@ void other_settings()
 				else if(tmpa == 5)
 					color::background = tmpb;
 				else
+					SetColor(color::foreground_default, color::background);
 					break;
 			}
 		}
