@@ -1224,15 +1224,18 @@ void other_settings()
 		save_settings();
 		window_result = window_other_settings.run();
 		if(window_result == 1) {
-			int _threshold, _sim_tot;
+			double _threshold;
+			int _sim_tot;
 			puts("Please input the thresold(double) and number of results per page of simsort(int)");
 			cin>>_threshold>>_sim_tot;
 			if(threshold <= 0 || threshold >= 1)
 				puts("Fail: Threshold should be in the range of (0,1)");
 			if(_sim_tot<=0 || _sim_tot>50)
 				puts("Fail: Results per page should be in the range of [1,50]");
-			if(threshold <= 0 || threshold >= 1 || _sim_tot<=0 || _sim_tot>50)
+			if(threshold <= 0 || threshold >= 1 || _sim_tot<=0 || _sim_tot>50) {
+				getch();
 				continue;
+			}
 			threshold = _threshold;
 			sim_tot = _sim_tot;
 		}
@@ -1329,19 +1332,18 @@ void init_windows()
 	window_other_settings.setPos(60, 14);
 }
 void read_settings() {
-	ifstream fin("database\\settings.db");
+	ifstream fin("Settings.db");
 	if(!fin.is_open())
 		return ;
 	fin>>color::foreground_default>>color::foreground_chosen>>
 		color::foreground_folder>>color::foreground_buffer>>color::background;
-	fin>>rpp>>sorting_mode>>switch_filters;
 	fin>>threshold>>sim_tot>>rpp>>sorting_mode>>switch_filters;
 	filters.file_read(fin);
 	fin.close();
 }
 void save_settings() {
 	ofstream fout;
-	fout.open("database\\settings.db",ios::trunc);
+	fout.open("Settings.db",ios::trunc);
 	fout<<color::foreground_default<<' '<<color::foreground_chosen<<' '<<
 		color::foreground_folder<<' '<<color::foreground_buffer<<' '<<color::background<<endl;
 	fout<<threshold<<' '<<sim_tot<<' '<<rpp<<' '<<sorting_mode<<' '<<switch_filters<<endl;
@@ -1352,6 +1354,7 @@ void mainwindow()
 {
 	int window_result;
 	read_settings();
+	save_settings();
 	while (1)
 	{
 		window_result = window_main.run();
