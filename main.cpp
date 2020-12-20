@@ -36,9 +36,9 @@ USN last_USN[255];						 //读取到的上一次运行时各个硬盘的最后�
 USN USN_ID[255];						 //每一个硬盘中的USN日志编号
 bool flag_rescanned[30];				 //标记该磁盘是否被重新扫描过
 vector<int> rm_pos[30];					 //被删除的文件在文件中的位置
+vector<int> rm, tmp_ull;				 //被删除文件的USN编号
 vector<dat> data[30], tmp_dat, crt, rnm; //保存的文件所有信息，创建的文件信息和重命名的信息
 vector<string> new_name;				 //保存一个被重命名文件的最终名字
-vector<int> new_prnum;                   //保存被重命名后新的ParentReferenceNumber，煞笔windows的剪切和删除操作本质都是重命名
 vector<File> result;
 vector<string> egg;
 bool removed[MAXN], exist[MAXN]; //标记是否被删除，是否已经存在
@@ -194,7 +194,7 @@ void first_run()
 	{
 		flag_rescanned[i] = 1;
 		USN_ID[i] = write_MFT(disk_path, data_dst, data[i]);
-		last_USN[i] = GET_USN(disk_path, 0, 0, removed, tmp_dat, new_name, new_prnum, renamed);
+		last_USN[i] = GET_USN(disk_path, 0, 0, tmp_ull, tmp_dat, new_name, renamed);
 		register int *tmp;
 		tmp = new int[MAXN];
 		for (int j = 0; j < data[i].size(); j++)
@@ -217,9 +217,10 @@ void update_database()
 		if (flag_rescanned[x])
 			continue;
 		crt.clear();
-		last_USN[x] = GET_USN(disk_path, last_USN[x], 1, removed, crt, new_name, new_prnum, renamed);
+		last_USN[x] = GET_USN(disk_path, last_USN[x], 1, rm, crt, new_name, renamed);
 		register dat buffer;
 		ifstream fin(data_dst, std::ios::binary);
+		long long shit;
 		while (1)
 		{
 			fin.read((char *)&buffer.rnum, sizeof(int));
@@ -229,7 +230,6 @@ void update_database()
 			fin.read((char *)&buffer.len, sizeof(int));
 			buffer.filename = new char[buffer.len];
 			fin.read(buffer.filename, sizeof(char) * buffer.len);
-			//cout<<buffer.filename<<endl;
 			if (!removed[buffer.rnum])
 			{
 				data[x].push_back(buffer);
@@ -261,7 +261,6 @@ void update_database()
 				data[x][i].len = nlen + 1;
 				strcpy(data[x][i].filename, new_name[renamed[data[x][i].rnum] - 1].c_str());
 				*(data[x][i].filename + nlen) = '\0';
-				data[x][i].prnum = new_prnum[renamed[data[x][i].rnum] - 1];
 			}
 			fout.write((char *)&data[x][i].rnum, sizeof(int));
 			fout.write((char *)&data[x][i].prnum, sizeof(int));
@@ -280,9 +279,9 @@ void update_database()
 		}
 		delete[] tmp;
 		/***初始化***/
+		rm.clear();
 		crt.clear();
 		new_name.clear();
-		new_prnum.clear();
 		memset(removed, 0, sizeof(removed));
 		memset(renamed, 0, sizeof(renamed));
 		memset(exist, 0, sizeof(exist));
@@ -639,6 +638,7 @@ void sear()
 {
 FINISH:
 	search_finished = 1;
+	//cout<<"FINISHED"<<endl;
 	while (!restart_searching)
 		; //开始时等待信号
 RESTART:
@@ -1015,7 +1015,6 @@ void start_searching()
 		}
 		if (c == 8 && bufferlen != -1)
 		{ //删除
-			return_to_main=1;
 			con_buffer[bufferlen] = '\0';
 			bufferlen--;
 			page = 1;
@@ -1163,9 +1162,7 @@ void start_searching()
 				}
 			}
 			else
-			{
 				con_buffer[++bufferlen] = c;
-			}
 			page_now = 1;
 			if (c < 0)
 			{ //若当前输入的是中文，要同时读进两个字符，减少bug可能
@@ -1329,21 +1326,21 @@ void init_windows()
 	window_other_settings.setPos(60, 14);
 }
 void read_settings() {
-	ifstream fin("database\\settings.db");
+	ifstream fin("Settings.db");
 	if(!fin.is_open())
 		return ;
 	fin>>color::foreground_default>>color::foreground_chosen>>
 		color::foreground_folder>>color::foreground_buffer>>color::background;
-	fin>>rpp>>sorting_mode>>switch_filters;
+	fin>>threshold>>sim_tot>>rpp>>sorting_mode>>switch_filters;
 	filters.file_read(fin);
 	fin.close();
 }
 void save_settings() {
 	ofstream fout;
-	fout.open("database\\settings.db",ios::trunc);
+	fout.open("Settings.db",ios::trunc);
 	fout<<color::foreground_default<<' '<<color::foreground_chosen<<' '<<
 		color::foreground_folder<<' '<<color::foreground_buffer<<' '<<color::background<<endl;
-	fout<<rpp<<' '<<sorting_mode<<' '<<switch_filters<<endl;
+	fout<<threshold<<' '<<sim_tot<<' '<<rpp<<' '<<sorting_mode<<' '<<switch_filters<<endl;
 	filters.file_print(fout);
 	fout.close();
 }
