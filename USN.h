@@ -137,7 +137,7 @@ bool is_ntfs(const char *drv)
 	CloseHandle(hVol);
 	return ret;
 }
-USN GET_USN(const char *drvname, USN startUSN, bool flag, vector<int> &rm, vector<dat> &cr, vector<string> &new_name, int *renamed)
+USN GET_USN(const char *drvname, USN startUSN, bool flag, bool* removed, vector<dat> &cr, vector<string> &new_name, vector<int> &new_prnum, int *renamed)
 {
 	int cnt = 0;
 	HANDLE hVol = INVALID_HANDLE_VALUE;
@@ -183,13 +183,23 @@ USN GET_USN(const char *drvname, USN startUSN, bool flag, vector<int> &rm, vecto
 			char fileName[MAX_PATH] = {0};
 			WideCharToMultiByte(CP_OEMCP, NULL, UsnRecord->FileName, strLen / 2, fileName, strLen, NULL, FALSE);
 			ret = UsnRecord->Usn;
-			//Reason 256 表示创建 4096 表示删除 8192表示重命名
+			//cout<<"*********************************"<<endl;
+			//Reason 256 表示创建 512 表示真正的删除！！！！ 4096 表示重命名时的旧名字  8192表示重命名时的新名字：
+			//注意 删除一个文件时使用8192放到新的地方，同时还有可能更改parentreferencenumber，代表移动到了新的地方，但是都会放在同一个磁盘
+			//司马剪切操作居然是先删除然后再重命名
+			//cout<<fileName<<' '<<UsnRecord->Reason<<' '<<(int)UsnRecord->FileReferenceNumber<<' '<<(int)UsnRecord->ParentFileReferenceNumber<<endl;
 			if (flag)
 			{
-				if (UsnRecord->Reason == 256)
+				if (UsnRecord->Reason == 256){
 					cr.emplace_back(fileName, (int)UsnRecord->FileReferenceNumber, (int)UsnRecord->ParentFileReferenceNumber, strLen + 1, 0);
-				else if (UsnRecord->Reason == 4096)
-					rm.push_back((int)UsnRecord->FileReferenceNumber);
+				}
+				else if (UsnRecord->Reason == 512 || UsnRecord->Reason == 2147484160){
+					removed[(int)UsnRecord->FileReferenceNumber]=1;
+					//rm.push_back((int)UsnRecord->FileReferenceNumber);
+				}
+				else if (UsnRecord->Reason == 4096){
+				 	//这个旧名字用处不大，不管了
+				}
 				else if (UsnRecord->Reason == 8192)
 				{
 					int tmp = renamed[(int)UsnRecord->FileReferenceNumber];
@@ -197,10 +207,13 @@ USN GET_USN(const char *drvname, USN startUSN, bool flag, vector<int> &rm, vecto
 					{
 						renamed[(int)UsnRecord->FileReferenceNumber] = ++cnt;
 						tmp = cnt;
-						new_name.push_back(fileName);
+						new_name.emplace_back(fileName);
+						new_prnum.emplace_back((int)UsnRecord->ParentFileReferenceNumber);
 					}
-					else
+					else{
 						new_name[tmp - 1] = fileName;
+						new_prnum[tmp - 1] = (int)UsnRecord->ParentFileReferenceNumber;
+					}
 				}
 			}
 			dwRetBytes -= UsnRecord->RecordLength;
