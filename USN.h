@@ -33,10 +33,10 @@ USN GET_MFT(string data_dst, string s, bool flag, vector<dat> &v)
 	/*获取驱动句柄*/
 	s = "\\\\.\\" + s + ":";
 	const char *dv = s.c_str();
-	HANDLE hcj = CreateFile(dv, GENERIC_READ | GENERIC_WRITE,
+	HANDLE hVol = CreateFile(dv, GENERIC_READ | GENERIC_WRITE,
 							FILE_SHARE_READ | FILE_SHARE_WRITE,						//CreateFile只能打开已经存在的对象
 							NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL); //忽略文件安全选项
-	if (INVALID_HANDLE_VALUE == hcj)
+	if (INVALID_HANDLE_VALUE == hVol)
 		return -1;
 
 	/*初始化USN日志文件*/
@@ -44,8 +44,8 @@ USN GET_MFT(string data_dst, string s, bool flag, vector<dat> &v)
 	cujd.MaximumSize = 0;
 	cujd.AllocationDelta = 0;
 	bool ret;
-	DWORD br;
-	ret = DeviceIoControl(hcj,
+	DWORD br; //byte returned
+	ret = DeviceIoControl(hVol,
 						  FSCTL_CREATE_USN_JOURNAL, //CTL_CODE 创建USN日志，若有则返回已有的
 						  &cujd,					//Input Buffer
 						  sizeof(cujd),				//Input Buffer size
@@ -58,7 +58,7 @@ USN GET_MFT(string data_dst, string s, bool flag, vector<dat> &v)
 
 	/*获取USN文件的基本信息*/
 	USN_JOURNAL_DATA UsnInfo; //USN日志的基础信息，包括64位ID，最小最大USN等信息（边界），在winioctl.h中可见定义
-	ret = DeviceIoControl(hcj,
+	ret = DeviceIoControl(hVol,
 						  FSCTL_QUERY_USN_JOURNAL,
 						  NULL, //不需要输入信息
 						  0,
@@ -70,7 +70,7 @@ USN GET_MFT(string data_dst, string s, bool flag, vector<dat> &v)
 		return -1;
 	if (flag) //此处只需要返回64位ID以作校验即可
 	{
-		CloseHandle(hcj); //不要忘了关闭句柄
+		CloseHandle(hVol); //不要忘了关闭句柄
 		return UsnInfo.UsnJournalID;
 	}
 
@@ -82,7 +82,7 @@ USN GET_MFT(string data_dst, string s, bool flag, vector<dat> &v)
 	DWORD usnDataSize;
 	PUSN_RECORD UsnRecord; //定义指针类型USNRecord,从Buffer中读取数据
 	ofstream fout(data_dst.c_str(), ios::binary);
-	while (0 != DeviceIoControl(hcj,
+	while (0 != DeviceIoControl(hVol,
 								FSCTL_ENUM_USN_DATA,
 								&med,
 								sizeof(med),
@@ -115,7 +115,7 @@ USN GET_MFT(string data_dst, string s, bool flag, vector<dat> &v)
 	}
 	int end = -1;
 	fout.write((char *)&end, sizeof(int));
-	CloseHandle(hcj); //
+	CloseHandle(hVol); //
 	fout.close();
 	return UsnInfo.UsnJournalID;
 }
@@ -162,7 +162,7 @@ USN GET_USN(const char *drvname, USN startUSN, bool flag, bool* removed, vector<
 	USN_JOURNAL_DATA qujd;
 	if (!DeviceIoControl(hVol, FSCTL_QUERY_USN_JOURNAL, NULL, 0, &qujd, sizeof(qujd), &br, NULL))
 		return 0;
-	char buffer[0x1000];
+	char buffer[BUF_LEN];
 	DWORD BytesReturned;
 	READ_USN_JOURNAL_DATA rujd = {startUSN,4294967295,0,0,0,qujd.UsnJournalID};
 	while (DeviceIoControl(hVol,
@@ -170,7 +170,7 @@ USN GET_USN(const char *drvname, USN startUSN, bool flag, bool* removed, vector<
 						   &rujd,
 						   sizeof(rujd),
 						   buffer,
-						   _countof(buffer),
+						   BUF_LEN,
 						   &BytesReturned, NULL))
 	{
 		DWORD dwRetBytes = BytesReturned - sizeof(USN);
