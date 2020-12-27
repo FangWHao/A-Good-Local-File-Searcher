@@ -393,7 +393,7 @@ bool NFA::read_reg(char *reg, int L, int R, int start_point, int dest_point, boo
 		for (int i = ret.leftL; i <= ret.leftR; i++)
 			charpool.insert(reg[i]);
 
-		printf(" hidden edge signed:  %d %d %d %d\n", start_point, dest_point, ret.leftL, ret.leftR);
+	//	printf(" hidden edge signed:  %d %d %d %d\n", start_point, dest_point, ret.leftL, ret.leftR);
 	}
 	else
 	{
