@@ -88,7 +88,7 @@ void show_egg()
 void exit()
 {
 	printf("Press any key to exit");
-	getchar();
+	getche();
 	exit(0);
 }
 void admincheck() //检查是否以管理员权限运行
@@ -165,6 +165,12 @@ bool check_info()
 			SetColor(color::foreground_default, color::background);
 			printf("Rescanning %s: please wait.\n", disk_path);
 			write_MFT(disk_path, data_dst, data[i]);
+			register int *tmp;
+			tmp = new int[MAXN];
+			for (int j = 0; j < data[i].size(); j++)
+				tmp[data[i][j].rnum] = j;
+			for (int j = 0; j < data[i].size(); j++)
+				data[i][j].ppos = tmp[data[i][j].prnum];
 			SetColor(color::foreground_chosen, color::background);
 			printf("Successfully rescanned %s.\n", disk_path);
 			SetColor(color::foreground_default, color::background);
@@ -642,11 +648,14 @@ void sear()
 {
 FINISH:
 	search_finished = 1;
-	while (!restart_searching)
-		; //开始时等待信号
+	// cout<<"FINISHED"<<endl;
+	while (!restart_searching); //开始时等待信号
+	// cout<<"START"<<endl;
 RESTART:
 	search_finished = 0;
-	//cout<<"RESTART"<<endl;
+	return_to_main = 0;
+	// cout<<"RESTART "<<con_buffer<<endl;
+	// cout<<bufferlen<<' '<<(int)con_buffer[bufferlen+1]<<' '<<strlen(con_buffer)<<endl;
 	/**********初始化************/
 	restart_searching = 0;
 	result.clear();		   //清空一下现有的结果
@@ -913,7 +922,7 @@ void start_searching()
 							cc = getche();
 							if (cc == 0 || cc == -32)
 								cc = getche(); //艹可能会有输入奇妙的符号的操作
-							if (cc = 27)
+							if (cc == 27)
 							{
 								goto QUIT_SORTING;
 							}
@@ -1050,6 +1059,7 @@ void start_searching()
 				cout << "PAGE: " << page << endl;
 				restart_searching = 1;
 			}
+			continue;
 		}
 		else if (c == 8 && bufferlen == -1)
 		{ //防止溢出
@@ -1067,7 +1077,8 @@ void start_searching()
 				else
 				{ //翻页操作
 					now_result = 0;
-					page_now++;
+					if (pa.size() != 1)
+						page_now++;
 					system("cls");
 					SetColor(color::foreground_chosen, color::background);
 					cout << con_buffer << endl;
@@ -1093,7 +1104,8 @@ void start_searching()
 					SetColor(color::foreground_chosen, color::background);
 					cout << con_buffer << endl;
 					SetColor(color::foreground_default, color::background);
-					page_now--;
+					if (pa.size() != 1)
+						page_now--;
 					cout << "PAGE: " << page_now << endl;
 					if (pa.size() != 1)
 						for (int i = pa[page_now].l; i < pa[page_now].r; i++)
@@ -1110,6 +1122,7 @@ void start_searching()
 			}
 			else if (direction == 80)
 			{ //向下选择结果
+				if(pa.size()==1)continue;
 				register bool selected = 0;
 				if (now_result < pa[page_now].r - pa[page_now].l)
 					now_result++;
@@ -1132,6 +1145,7 @@ void start_searching()
 			}
 			else if (direction == 72)
 			{ //向上选择结果
+				if(pa.size()==1)continue;
 				register bool selected = 0;
 				if (now_result > 1)
 					now_result--;
@@ -1179,9 +1193,14 @@ void start_searching()
 		QUIT_SORTING:
 			system("cls");
 			SetColor(color::foreground_chosen, color::background);
-			cout << con_buffer << endl;
+			cout << con_buffer<< endl;
 			SetColor(color::foreground_default, color::background);
 			cout << "PAGE: " << page_now << endl;
+			if(bufferlen==2&&con_buffer[0]=='T'&&con_buffer[1]=='H'&&con_buffer[2]=='U'){
+				SetColor(color::foreground_chosen, color::background);
+				printf("Thank you for using!!\n");
+				SetColor(color::foreground_default, color::background);
+			}
 			now_result = 0;
 			restart_searching = 1;
 		}
