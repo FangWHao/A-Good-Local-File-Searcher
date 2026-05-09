@@ -219,7 +219,6 @@ struct split_result
 };
 split_result split(char *reg, int L, int R)
 {
-	int tmp, cnt = 0;
 	if (reg[L] == '^' && reg[L - 1] != '\\') //判断是否为排除运算：可以生效的排除运算符必然在L上
 		return split_result(4, L + 1, R);
 	int lkloc = -1, unloc = -1, klloc = -1;
@@ -228,7 +227,6 @@ split_result split(char *reg, int L, int R)
 		i = get_next_pos(reg, i); //将i前调至匹配右括号位置上（正好落在右括号上）或不改变i（当reg[i]不为真左括号）
 		if (reg[i] == '\\')		  //把一个字符记录一次
 			i++;
-		cnt++; //找到一个元，计数
 		if (i >= R)
 			break;
 		if (reg[i + 1] == '*' && reg[i] != '\\')
@@ -567,11 +565,15 @@ bool DFA::match(char *str)
 	{
 		if (str[i] < 0)
 		{ //检测到中文
+			if (i + 1 >= len)
+				return false;
+			unsigned char first_char = (unsigned char)str[i];
+			unsigned char second_char = (unsigned char)str[i + 1];
 			if (charpool.find(str[i]) == charpool.end() || charpool.find(str[i + 1]) == charpool.end() ||
-				lnk[current][str[i]] == -1 || lnk[lnk[current][str[i]]][str[i + 1]] == -1) //中文不匹配，走else包
+				lnk[current][first_char] == -1 || lnk[lnk[current][first_char]][second_char] == -1) //中文不匹配，走else包
 				current = lnk[current][('\1')];
 			else
-				current = lnk[lnk[current][str[i]]][str[i + 1]]; //中文沿边行进
+				current = lnk[lnk[current][first_char]][second_char]; //中文沿边行进
 			i++;												 //中文有两个字符
 		}
 		else
@@ -579,7 +581,7 @@ bool DFA::match(char *str)
 			if (charpool.find(str[i]) == charpool.end()) //如果符号未定义则走else包
 				current = lnk[current][('\1')];
 			else
-				current = lnk[current][str[i]]; //沿边行进
+				current = lnk[current][(unsigned char)str[i]]; //沿边行进
 		}
 		if (current == -1) //程序让你滚，你就得滚
 			return false;
@@ -612,7 +614,7 @@ void DFA::debug()
 				printf("      [else] ");
 			else
 				printf("      %d ", (int)*charpool_iter);
-			printf(" %d\n", lnk[i][*charpool_iter]);
+			printf(" %d\n", lnk[i][(unsigned char)*charpool_iter]);
 		}
 		if (cancelled[i])
 			puts("Caution: This State is cancelled..");
@@ -646,7 +648,8 @@ void DFA::update()
 			flag = true;
 			for (charpool_iter = charpool.begin(); charpool_iter != charpool.end(); charpool_iter++)
 			{
-				if (lnk[i][*charpool_iter] != lnk[j][*charpool_iter]) //判断两个节点可否合并：是否拥有完全相同的出边
+				unsigned char char_key = (unsigned char)*charpool_iter;
+				if (lnk[i][char_key] != lnk[j][char_key]) //判断两个节点可否合并：是否拥有完全相同的出边
 					flag = false;
 			}
 			if (flag)
@@ -654,8 +657,11 @@ void DFA::update()
 				cancelled[j] = true; //打上删除标记
 				for (int _i = 1; _i <= size; _i++)
 					for (charpool_iter = charpool.begin(); charpool_iter != charpool.end(); charpool_iter++)
-						if (lnk[_i][*charpool_iter] == j) //把所有的入边合并到同一节点
-							lnk[_i][*charpool_iter] = i;
+					{
+						unsigned char char_key = (unsigned char)*charpool_iter;
+						if (lnk[_i][char_key] == j) //把所有的入边合并到同一节点
+							lnk[_i][char_key] = i;
+					}
 			}
 		}
 	}
@@ -780,6 +786,7 @@ void DFA::transform_NFA_to_DFA(NFA &bas_nfa)
 		q.pop();
 		for (charpool_iter = bas_nfa.charpool.begin(); charpool_iter != bas_nfa.charpool.end(); charpool_iter++)
 		{
+			unsigned char char_key = (unsigned char)*charpool_iter;
 			//寻找所有合适的边属性
 			tmpset = move(bas_nfa, state[tmp], *charpool_iter); //跑一遍move
 																//寻找本DFA中是否已存在new状态
@@ -793,17 +800,17 @@ void DFA::transform_NFA_to_DFA(NFA &bas_nfa)
 			//执行结果
 			if (reppos == -1 && tmpset.size() == 0)
 			{ //空状态，让它滚
-				lnk[tmp][*charpool_iter] = -1;
+				lnk[tmp][char_key] = -1;
 			}
 			else if (reppos == -1)
 			{ //无重复，建立新状态保存之，建边，入队
 				state[++size] = tmpset;
-				lnk[tmp][*charpool_iter] = size;
+				lnk[tmp][char_key] = size;
 				q.push(size);
 			}
 			else
 			{ //已存在，建边即可
-				lnk[tmp][*charpool_iter] = reppos;
+				lnk[tmp][char_key] = reppos;
 			}
 		}
 	}

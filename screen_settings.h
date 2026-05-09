@@ -15,7 +15,7 @@ void SetSize(unsigned int uCol, unsigned int uLine)
 }
 void SetTitle(LPCSTR lpTitle)
 {
-	SetConsoleTitle(lpTitle);
+	SetConsoleTitleA(lpTitle);
 }
 void SetPosC(COORD a)
 { // set cursor

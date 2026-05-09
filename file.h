@@ -7,8 +7,10 @@
 #include <windef.h>
 #include <math.h>
 #include <map>
-#include "USN.h"
+#include <string>
+#include <vector>
 #define ll long long
+typedef unsigned long long file_ref_t;
 using namespace std;
 
 bool fileh_switch_debug;
@@ -23,32 +25,43 @@ class dat
 public:
 	char *filename;		   //文件名
 	int len;			   //文件名的长度+1(\0)
-	int rnum, prnum, ppos; //reference number，parent reference number，parent在vector中的位置
-	dat() { filename = NULL; }
-	dat(char *s, int r, int pr = 0, int l = 0, int pp = 0) : rnum(r), prnum(pr), len(l), ppos(pp)
+	file_ref_t rnum, prnum; //reference number，parent reference number
+	int ppos;			   //parent在vector中的位置
+	dat() : filename(NULL), len(0), rnum(0), prnum(0), ppos(0) {}
+	dat(const char *s, file_ref_t r, file_ref_t pr = 0, int l = 0, int pp = 0) : filename(NULL), len(l), rnum(r), prnum(pr), ppos(pp)
 	{
-		filename = new char[l]; //深层复制
-		strcpy(filename, s);
+		if (s != NULL && l > 0)
+		{
+			filename = new char[l]; //深层复制
+			strcpy(filename, s);
+		}
 	}
 	dat &operator=(const dat &a)
 	{
-		len = a.len;
-		rnum = a.rnum;
-		prnum = a.prnum;
-		ppos = a.ppos;
+		if (this == &a)
+			return *this;
+		char *new_filename = NULL;
+		if (a.filename != NULL && a.len > 0)
+		{
+			new_filename = new char[a.len];
+			strcpy(new_filename, a.filename);
+		}
 		if (filename != NULL)
 			delete[] filename;
-		filename = new char[len];
-		strcpy(filename, a.filename);
-	}
-	dat(const dat &a)
-	{
+		filename = new_filename;
 		len = a.len;
 		rnum = a.rnum;
 		prnum = a.prnum;
 		ppos = a.ppos;
-		filename = new char[len];
-		strcpy(filename, a.filename);
+		return *this;
+	}
+	dat(const dat &a) : filename(NULL), len(0), rnum(0), prnum(0), ppos(0)
+	{
+		*this = a;
+	}
+	~dat()
+	{
+		delete[] filename;
 	}
 	double Cosine_Similarity(const char *);
 };
@@ -59,6 +72,8 @@ double dat::Cosine_Similarity(const char *s)
 	mp3.clear(); //初始化清空一下
 	int l1 = len;
 	int l2 = strlen(s);
+	if (l1 <= 1 || l2 == 0)
+		return 0;
 	for (int i = 0; i < l1 - 1; i++)
 	{
 		if (filename[i] == ' ')
@@ -81,6 +96,8 @@ double dat::Cosine_Similarity(const char *s)
 		len1 += mp1[iter->first] * mp1[iter->first];
 		len2 += mp2[iter->first] * mp2[iter->first];
 	}
+	if (len1 == 0 || len2 == 0)
+		return 0;
 	double div = len / sqrt(len1) / sqrt(len2);
 	return div;
 }
@@ -91,28 +108,19 @@ public:
 	ll filesize;					  //文件的大小 -1代表文件夹,可当作flag使用
 	FILETIME CreatT, AccessT, WriteT; //创建时间，上次访问时间，上次修改时间
 	int disk;						  //所在磁盘
-	File() {}
-	File(dat x, int disk, string filepath) : disk(disk), filepath(filepath)
+	File() : dat(), filepath(), filesize(-1), disk(0)
+	{
+		memset(&CreatT, 0, sizeof(CreatT));
+		memset(&AccessT, 0, sizeof(AccessT));
+		memset(&WriteT, 0, sizeof(WriteT));
+	}
+	File(const dat &x, int disk, string filepath) : dat(x), filepath(filepath), filesize(-1), disk(disk)
 	{ //初始化，注意深层复制！！！
-		filename = new char[x.len];
-		strcpy(filename, x.filename);
-		len = x.len;
-		rnum = x.rnum, prnum = x.prnum, ppos = x.ppos;
 		filesize = get_size(filepath.c_str()).QuadPart;
 		get_time(*this);
 	}
-	File(const File &a)
+	File(const File &a) : dat(a)
 	{
-		len = a.len;
-		rnum = a.rnum;
-		prnum = a.prnum;
-		ppos = a.ppos;
-		filename = new char[len];
-		strcpy(filename, a.filename);
-		// if(fileh_switch_debug)
-		// 	cout<<"Fuzhigouzao1  "<<a.filename<<"    "<<strlen(a.filename)<<endl;
-		// if(fileh_switch_debug)
-		// 	cout<<"Fuzhigouzao2  "<<filename<<"    "<<strlen(filename)<<endl;
 		filepath = a.filepath;
 		filesize = a.filesize;
 		CreatT = a.CreatT;
@@ -122,34 +130,16 @@ public:
 	}
 	File &operator=(const File &a)
 	{
-		len = a.len;
-		rnum = a.rnum;
-		prnum = a.prnum;
-		ppos = a.ppos;
-		// if(filename == NULL)
-		// 	cout<<"IIIIIIIII";
-		// if(filename != NULL && fileh_switch_debug)
-		// 	cout<<"Fu~zhi~hanshu0  "<<strlen(filename)<<"    "<<filename<<endl;
-		if (filename != NULL)
-			delete[] filename;
-		filename = new char[len];
-		strcpy(filename, a.filename);
-		// if(fileh_switch_debug)
-		// 	cout<<"Fu~zhi~hanshu1  "<<a.filename<<"    "<<strlen(a.filename)<<endl;
-		// if(fileh_switch_debug)
-		// 	cout<<"Fu~zhi~hanshu2  "<<filename<<"    "<<strlen(filename)<<endl;
+		if (this == &a)
+			return *this;
+		dat::operator=(a);
 		filepath = a.filepath;
 		filesize = a.filesize;
 		CreatT = a.CreatT;
 		AccessT = a.AccessT;
 		WriteT = a.WriteT;
 		disk = a.disk;
-	}
-	~File()
-	{
-		// if(fileh_switch_debug)
-		// 	cout<<"Xigou  "<<filename<<"    "<<strlen(filename)<<endl;
-		delete[] filename;
+		return *this;
 	}
 };
 LARGE_INTEGER get_size(const char *filepath)
@@ -167,13 +157,20 @@ LARGE_INTEGER get_size(const char *filepath)
 }
 void get_time(File &fl)
 {
-	HANDLE hFile = CreateFile(fl.filepath.c_str(),
+	HANDLE hFile = CreateFileA(fl.filepath.c_str(),
 							  GENERIC_READ | GENERIC_WRITE,
 							  FILE_SHARE_READ | FILE_SHARE_DELETE,
 							  NULL,
 							  OPEN_EXISTING,
 							  FILE_FLAG_BACKUP_SEMANTICS,
 							  NULL);
+	if (hFile == INVALID_HANDLE_VALUE)
+	{
+		memset(&fl.CreatT, 0, sizeof(fl.CreatT));
+		memset(&fl.AccessT, 0, sizeof(fl.AccessT));
+		memset(&fl.WriteT, 0, sizeof(fl.WriteT));
+		return;
+	}
 	GetFileTime(hFile, &fl.CreatT, &fl.AccessT, &fl.WriteT);
 	CloseHandle(hFile);
 }
@@ -189,25 +186,24 @@ void print_time(FILETIME ftime)
 	sprintf(str, "%04u-%02u-%02u %02u:%02u:%02u", rtime.wYear, rtime.wMonth, rtime.wDay, rtime.wHour, rtime.wMinute, rtime.wSecond);
 	printf("%s", str);
 }
-char *GetClipboard()
+string GetClipboard()
 {
-	char *lpStr = NULL;
+	string ret;
 	if (::OpenClipboard(NULL))
 	{ //获得剪贴板数据
 		HGLOBAL hMem = GetClipboardData(CF_TEXT);
 		if (NULL != hMem)
 		{
-			lpStr = (char *)::GlobalLock(hMem);
+			char *lpStr = (char *)::GlobalLock(hMem);
 			if (NULL != lpStr)
 			{
-				//MessageBox(0, lpStr, "", 0);
-				cout << lpStr << endl;
+				ret = lpStr;
 				::GlobalUnlock(hMem);
 			}
 		}
 		::CloseClipboard();
 	}
-	return lpStr;
+	return ret;
 }
 bool Time_cmp(const FILETIME a, const FILETIME b)
 { // <
@@ -253,12 +249,14 @@ bool WriteT_cmp_s(File a, File b)
 	return Time_cmp(a.WriteT, b.WriteT);
 }
 bool Name_cmp_s(File a, File b) {
-	return strcmp(a.filename, b.filename);
+	return strcmp(a.filename, b.filename) < 0;
 }
 void merge_sort1(int l, int r, bool cmp(File, File), vector<File> &vec);
 File *tmp;
 void merge_sort(vector<File> &vec, bool cmp(File, File))
 {
+	if (vec.empty())
+		return;
 	//cout<<"Fuck"<<endl;
 	tmp = new File[vec.size()];
 	//cout<<"Holy 1"<<endl;

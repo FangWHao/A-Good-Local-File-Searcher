@@ -15,6 +15,7 @@
 #include <deque>
 #include <fstream>
 #include <string>
+#include <map>
 #include "file.h"
 using namespace std;
 #define BUF_LEN 4096
@@ -33,7 +34,7 @@ USN GET_MFT(string data_dst, string s, bool flag, vector<dat> &v)
 	/*获取驱动句柄*/
 	s = "\\\\.\\" + s + ":";
 	const char *dv = s.c_str();
-	HANDLE hVol = CreateFile(dv, GENERIC_READ | GENERIC_WRITE,
+	HANDLE hVol = CreateFileA(dv, GENERIC_READ | GENERIC_WRITE,
 							FILE_SHARE_READ | FILE_SHARE_WRITE,						//CreateFile只能打开已经存在的对象
 							NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL); //忽略文件安全选项
 	if (INVALID_HANDLE_VALUE == hVol)
@@ -54,7 +55,10 @@ USN GET_MFT(string data_dst, string s, bool flag, vector<dat> &v)
 						  &br, //实际输出数据的bytes
 						  NULL);
 	if (0 == ret)
+	{
+		CloseHandle(hVol);
 		return -1;
+	}
 
 	/*获取USN文件的基本信息*/
 	USN_JOURNAL_DATA UsnInfo; //USN日志的基础信息，包括64位ID，最小最大USN等信息（边界），在winioctl.h中可见定义
@@ -67,7 +71,10 @@ USN GET_MFT(string data_dst, string s, bool flag, vector<dat> &v)
 						  &br,			   //实际大小，貌似并无卵用
 						  NULL);
 	if (0 == ret)
+	{
+		CloseHandle(hVol);
 		return -1;
+	}
 	if (flag) //此处只需要返回64位ID以作校验即可
 	{
 		CloseHandle(hVol); //不要忘了关闭句柄
@@ -96,25 +103,24 @@ USN GET_MFT(string data_dst, string s, bool flag, vector<dat> &v)
 		while (dwRetBytes > 0)
 		{
 			int strLen = UsnRecord->FileNameLength;
-			char fileName[MAX_PATH] = {0};
-			WideCharToMultiByte(CP_OEMCP, NULL, UsnRecord->FileName, strLen / 2, fileName, strLen, NULL, FALSE);
+			char fileName[MAX_PATH * 4] = {0};
+			WideCharToMultiByte(CP_OEMCP, NULL, UsnRecord->FileName, strLen / 2, fileName, sizeof(fileName) - 1, NULL, FALSE);
 			//将wchar的FileName转换成char数组，便于存储
-			int rnum = (int)UsnRecord->FileReferenceNumber, prnum = (int)UsnRecord->ParentFileReferenceNumber;
+			file_ref_t rnum = UsnRecord->FileReferenceNumber, prnum = UsnRecord->ParentFileReferenceNumber;
 			int len = strlen(fileName) + 1;
-			fout.write((char *)&rnum, sizeof(int));
-			fout.write((char *)&prnum, sizeof(int));
+			fout.write((char *)&rnum, sizeof(rnum));
+			fout.write((char *)&prnum, sizeof(prnum));
 			fout.write((char *)&len, sizeof(int));
 			fout.write(fileName, sizeof(char) * len);
-			v.emplace_back(fileName, (int)UsnRecord->FileReferenceNumber, (int)UsnRecord->ParentFileReferenceNumber, len);
-			char *pathBuffer[BUF_LEN];
+			v.emplace_back(fileName, rnum, prnum, len);
 			DWORD recordLen = UsnRecord->RecordLength;
 			dwRetBytes -= recordLen;
 			UsnRecord = (PUSN_RECORD)(((PCHAR)UsnRecord) + recordLen); //指针偏移recordLen的量，访问下一条记录
 		}
 		med.StartFileReferenceNumber = *(USN *)&buffer; //更新读取的起始USN
 	}
-	int end = -1;
-	fout.write((char *)&end, sizeof(int));
+	file_ref_t end = (file_ref_t)-1;
+	fout.write((char *)&end, sizeof(end));
 	CloseHandle(hVol); //
 	fout.close();
 	return UsnInfo.UsnJournalID;
@@ -137,7 +143,7 @@ bool is_ntfs(const char *drv)
 	CloseHandle(hVol);
 	return ret;
 }
-USN GET_USN(const char *drvname, USN startUSN, bool flag, bool* removed, vector<dat> &cr, vector<string> &new_name, vector<int> &new_prnum, int *renamed)
+USN GET_USN(const char *drvname, USN startUSN, bool flag, map<file_ref_t, bool> &removed, vector<dat> &cr, vector<string> &new_name, vector<file_ref_t> &new_prnum, map<file_ref_t, int> &renamed)
 {
 	int cnt = 0;
 	HANDLE hVol = INVALID_HANDLE_VALUE;
@@ -151,8 +157,9 @@ USN GET_USN(const char *drvname, USN startUSN, bool flag, bool* removed, vector<
 							   &MaximumComponentLength,
 							   0,
 							   FileSystemName,
-							   MAX_PATH + 1) &&
-		0 == strcmp(FileSystemName, "NTFS")) // 判断是否为 NTFS 格式
+							   MAX_PATH + 1))
+		return 0;
+	if (0 != strcmp(FileSystemName, "NTFS")) // 判断是否为 NTFS 格式
 		return 0;
 	hVol = CreateFileA((std::string("\\\\.\\") + drvname + ":").c_str(),
 					   GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
@@ -161,7 +168,10 @@ USN GET_USN(const char *drvname, USN startUSN, bool flag, bool* removed, vector<
 	DWORD br;
 	USN_JOURNAL_DATA qujd;
 	if (!DeviceIoControl(hVol, FSCTL_QUERY_USN_JOURNAL, NULL, 0, &qujd, sizeof(qujd), &br, NULL))
+	{
+		CloseHandle(hVol);
 		return 0;
+	}
 	char buffer[BUF_LEN];
 	DWORD BytesReturned;
 	READ_USN_JOURNAL_DATA rujd = {startUSN,4294967295,0,0,0,qujd.UsnJournalID};
@@ -180,9 +190,11 @@ USN GET_USN(const char *drvname, USN startUSN, bool flag, bool* removed, vector<
 		while (dwRetBytes > 0)
 		{
 			const int strLen = UsnRecord->FileNameLength;
-			char fileName[MAX_PATH] = {0};
-			WideCharToMultiByte(CP_OEMCP, NULL, UsnRecord->FileName, strLen / 2, fileName, strLen, NULL, FALSE);
+			char fileName[MAX_PATH * 4] = {0};
+			WideCharToMultiByte(CP_OEMCP, NULL, UsnRecord->FileName, strLen / 2, fileName, sizeof(fileName) - 1, NULL, FALSE);
 			ret = UsnRecord->Usn;
+			file_ref_t ref = UsnRecord->FileReferenceNumber;
+			file_ref_t parent_ref = UsnRecord->ParentFileReferenceNumber;
 			//cout<<"*********************************"<<endl;
 			//Reason 256 表示创建 512 表示真正的删除！！！！ 4096 表示重命名时的旧名字  8192表示重命名时的新名字：
 			//注意 删除一个文件时使用8192放到新的地方，同时还有可能更改parentreferencenumber，代表移动到了新的地方，但是都会放在同一个磁盘
@@ -190,29 +202,29 @@ USN GET_USN(const char *drvname, USN startUSN, bool flag, bool* removed, vector<
 			//cout<<fileName<<' '<<UsnRecord->Reason<<' '<<(int)UsnRecord->FileReferenceNumber<<' '<<(int)UsnRecord->ParentFileReferenceNumber<<endl;
 			if (flag)
 			{
-				if (UsnRecord->Reason == 256){
-					cr.emplace_back(fileName, (int)UsnRecord->FileReferenceNumber, (int)UsnRecord->ParentFileReferenceNumber, strLen + 1, 0);
+				if (UsnRecord->Reason & USN_REASON_FILE_CREATE){
+					cr.emplace_back(fileName, ref, parent_ref, strlen(fileName) + 1, 0);
 				}
-				else if (UsnRecord->Reason == 512 || UsnRecord->Reason == 2147484160){
-					removed[(int)UsnRecord->FileReferenceNumber]=1;
+				else if (UsnRecord->Reason & USN_REASON_FILE_DELETE){
+					removed[ref]=1;
 					//rm.push_back((int)UsnRecord->FileReferenceNumber);
 				}
-				else if (UsnRecord->Reason == 4096){
+				else if (UsnRecord->Reason & USN_REASON_RENAME_OLD_NAME){
 				 	//这个旧名字用处不大，不管了
 				}
-				else if (UsnRecord->Reason == 8192)
+				else if (UsnRecord->Reason & USN_REASON_RENAME_NEW_NAME)
 				{
-					int tmp = renamed[(int)UsnRecord->FileReferenceNumber];
+					int tmp = renamed[ref];
 					if (!tmp)
 					{
-						renamed[(int)UsnRecord->FileReferenceNumber] = ++cnt;
+						renamed[ref] = ++cnt;
 						tmp = cnt;
 						new_name.emplace_back(fileName);
-						new_prnum.emplace_back((int)UsnRecord->ParentFileReferenceNumber);
+						new_prnum.emplace_back(parent_ref);
 					}
 					else{
 						new_name[tmp - 1] = fileName;
-						new_prnum[tmp - 1] = (int)UsnRecord->ParentFileReferenceNumber;
+						new_prnum[tmp - 1] = parent_ref;
 					}
 				}
 			}

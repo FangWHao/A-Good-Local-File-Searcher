@@ -22,7 +22,6 @@
 #include "screen_settings.h"
 using namespace std;
 #define ull unsigned long long
-#define MAXN 10000000
 namespace color
 {
 	int background = 0;
@@ -35,14 +34,15 @@ int disk_num = 0, page = 1;
 USN last_USN[255];						 //读取到的上一次运行时各个硬盘的最后一个USN编号
 USN USN_ID[255];						 //每一个硬盘中的USN日志编号
 bool flag_rescanned[30];				 //标记该磁盘是否被重新扫描过
+char disk_letters[30];					 //保存真实的NTFS盘符，不再假定盘符连续
 vector<int> rm_pos[30];					 //被删除的文件在文件中的位置
 vector<dat> data[30], tmp_dat, crt, rnm; //保存的文件所有信息，创建的文件信息和重命名的信息
 vector<string> new_name;				 //保存一个被重命名文件的最终名字
-vector<int> new_prnum;                   //保存被重命名后新的ParentReferenceNumber，煞笔windows的剪切和删除操作本质都是重命名
+vector<file_ref_t> new_prnum;            //保存被重命名后新的ParentReferenceNumber，煞笔windows的剪切和删除操作本质都是重命名
 vector<File> result;
 vector<string> egg;
-bool removed[MAXN], exist[MAXN]; //标记是否被删除，是否已经存在
-int renamed[MAXN];				 //被重命名的文件的USN编号->new_name中的编号
+map<file_ref_t, bool> removed, exist; //标记是否被删除，是否已经存在
+map<file_ref_t, int> renamed;		  //被重命名的文件的USN编号->new_name中的编号
 char con_buffer[10000];			 //控制台缓冲区
 bool is_chinese[10000];
 int bufferlen = -1, now_result = 0;
@@ -114,21 +114,28 @@ bool check_local()
 	if (!_file)
 		return 1;
 	_file.close();
+	_file.open("database\\format_v2.db", ios::in);
+	if (!_file)
+		return 1;
+	_file.close();
 	return 0;
 }
 
 int check_disk()
 { //检查本地磁盘数量
-	//可能存在的潜在bug:ntfs格式磁盘不连续时会跳过末尾的磁盘
 	int tot = 0;
-	for (char dst[] = "C";; dst[0]++)
+	DWORD drives = GetLogicalDrives();
+	for (char dst[] = "A"; dst[0] <= 'Z' && tot < 30; dst[0]++)
 	{
-		if (is_ntfs(dst))
-			tot++;
-		else
-			break;
+		if ((drives & (1 << (dst[0] - 'A'))) && is_ntfs(dst))
+			disk_letters[tot++] = dst[0];
 	}
 	return tot;
+}
+void get_disk_path(int disk_index, char *disk_path, char *data_dst)
+{
+	disk_path[0] = disk_letters[disk_index];
+	data_dst[9] = (disk_letters[disk_index] >= 'A' && disk_letters[disk_index] <= 'Z') ? disk_letters[disk_index] - 'A' + 'a' : disk_letters[disk_index];
 }
 USN write_MFT(const char *disk_path, const char *data_dst, vector<dat> &v)
 {
@@ -152,8 +159,9 @@ bool check_info()
 	//检查信息是否合理
 	bool flag = 0;
 	char disk_path[] = "C", data_dst[] = "database\\c.db";
-	for (int i = 0; i < disk_num; i++, disk_path[0]++, data_dst[9]++)
+	for (int i = 0; i < disk_num; i++)
 	{
+		get_disk_path(i, disk_path, data_dst);
 		USN now_USN = GET_MFT(data_dst, disk_path, 1, tmp_dat);
 		if (now_USN != USN_ID[i])
 		{
@@ -165,17 +173,18 @@ bool check_info()
 			SetColor(color::foreground_default, color::background);
 			printf("Rescanning %s: please wait.\n", disk_path);
 			write_MFT(disk_path, data_dst, data[i]);
-			register int *tmp;
-			tmp = new int[MAXN];
+			map<file_ref_t, int> tmp;
 			for (int j = 0; j < data[i].size(); j++)
 				tmp[data[i][j].rnum] = j;
 			for (int j = 0; j < data[i].size(); j++)
 				data[i][j].ppos = tmp[data[i][j].prnum];
+			flag = 1;
 			SetColor(color::foreground_chosen, color::background);
 			printf("Successfully rescanned %s.\n", disk_path);
 			SetColor(color::foreground_default, color::background);
 		}
 	}
+	return flag;
 }
 bool update_info()
 {
@@ -187,6 +196,7 @@ bool update_info()
 	for (int i = 0; i < disk_num; i++)
 		fout << last_USN[i] << endl;
 	fout.close();
+	return true;
 }
 void first_run()
 {
@@ -194,15 +204,18 @@ void first_run()
 	/****************Debug************/
 	ofstream fout("database\\settings.db");
 	fout.close();
+	ofstream version_fout("database\\format_v2.db");
+	version_fout << "file-ref-width=64" << endl;
+	version_fout.close();
 	char disk_path[] = "C", data_dst[] = "database\\c.db";
 	disk_num = check_disk();
-	for (int i = 0; i < disk_num; i++, disk_path[0]++, data_dst[9]++)
+	for (int i = 0; i < disk_num; i++)
 	{
+		get_disk_path(i, disk_path, data_dst);
 		flag_rescanned[i] = 1;
 		USN_ID[i] = write_MFT(disk_path, data_dst, data[i]);
 		last_USN[i] = GET_USN(disk_path, 0, 0, removed, tmp_dat, new_name, new_prnum, renamed);
-		register int *tmp;
-		tmp = new int[MAXN];
+		map<file_ref_t, int> tmp;
 		for (int j = 0; j < data[i].size(); j++)
 			tmp[data[i][j].rnum] = j;
 		for (int j = 0; j < data[i].size(); j++)
@@ -210,31 +223,33 @@ void first_run()
 		SetColor(color::foreground_chosen, color::background);
 		printf("Successfully scanned %s:\n", disk_path);
 		SetColor(color::foreground_default, color::background);
-		delete[] tmp;
 	}
 }
 void update_database()
 {
 	char disk_path[] = "C";
 	char data_dst[] = "database\\c.db";
-	for (int x = 0; x < disk_num; x++, disk_path[0]++, data_dst[9]++)
+	for (int x = 0; x < disk_num; x++)
 	{
+		get_disk_path(x, disk_path, data_dst);
 		printf("Now updating disk %s, please wait.\n", disk_path);
 		if (flag_rescanned[x])
 			continue;
 		crt.clear();
 		last_USN[x] = GET_USN(disk_path, last_USN[x], 1, removed, crt, new_name, new_prnum, renamed);
-		register dat buffer;
 		ifstream fin(data_dst, std::ios::binary);
 		while (1)
 		{
-			fin.read((char *)&buffer.rnum, sizeof(int));
-			if (buffer.rnum == -1)
+			dat buffer;
+			fin.read((char *)&buffer.rnum, sizeof(buffer.rnum));
+			if (!fin || buffer.rnum == (file_ref_t)-1)
 				break;
-			fin.read((char *)&buffer.prnum, sizeof(int));
+			fin.read((char *)&buffer.prnum, sizeof(buffer.prnum));
 			fin.read((char *)&buffer.len, sizeof(int));
 			buffer.filename = new char[buffer.len];
 			fin.read(buffer.filename, sizeof(char) * buffer.len);
+			if (!fin)
+				break;
 			//cout<<buffer.filename<<endl;
 			if (!removed[buffer.rnum])
 			{
@@ -252,31 +267,30 @@ void update_database()
 				exist[crt[i].rnum] = 1;
 			}
 		}
-		register int *tmp;
-		tmp = new int[MAXN];
-		memset(tmp, 0, sizeof(tmp));
+		map<file_ref_t, int> tmp;
 		cout << "read usn : " << (double)clock() / CLOCKS_PER_SEC << "s" << endl;
 		ofstream fout(data_dst, std::ios::binary);
 		for (register int i = 0; i < data[x].size(); i++)
 		{
-			if (renamed[data[x][i].rnum])
+			map<file_ref_t, int>::iterator renamed_iter = renamed.find(data[x][i].rnum);
+			if (renamed_iter != renamed.end() && renamed_iter->second)
 			{
-				register int nlen = new_name[renamed[data[x][i].rnum] - 1].length();
+				register int nlen = new_name[renamed_iter->second - 1].length();
 				delete[] data[x][i].filename;
 				data[x][i].filename = new char[nlen + 1];
 				data[x][i].len = nlen + 1;
-				strcpy(data[x][i].filename, new_name[renamed[data[x][i].rnum] - 1].c_str());
+				strcpy(data[x][i].filename, new_name[renamed_iter->second - 1].c_str());
 				*(data[x][i].filename + nlen) = '\0';
-				data[x][i].prnum = new_prnum[renamed[data[x][i].rnum] - 1];
+				data[x][i].prnum = new_prnum[renamed_iter->second - 1];
 			}
-			fout.write((char *)&data[x][i].rnum, sizeof(int));
-			fout.write((char *)&data[x][i].prnum, sizeof(int));
+			fout.write((char *)&data[x][i].rnum, sizeof(data[x][i].rnum));
+			fout.write((char *)&data[x][i].prnum, sizeof(data[x][i].prnum));
 			fout.write((char *)&data[x][i].len, sizeof(int));
 			fout.write(data[x][i].filename, sizeof(char) * data[x][i].len);
 			tmp[data[x][i].rnum] = i;
 		}
-		int end = -1;
-		fout.write((char *)&end, sizeof(int));
+		file_ref_t end = (file_ref_t)-1;
+		fout.write((char *)&end, sizeof(end));
 		fout.close();
 		cout << "write database : " << (double)clock() / CLOCKS_PER_SEC << "s" << endl;
 		/***建立文件索引路径***/
@@ -284,14 +298,13 @@ void update_database()
 		{
 			data[x][i].ppos = tmp[data[x][i].prnum];
 		}
-		delete[] tmp;
 		/***初始化***/
 		crt.clear();
 		new_name.clear();
 		new_prnum.clear();
-		memset(removed, 0, sizeof(removed));
-		memset(renamed, 0, sizeof(renamed));
-		memset(exist, 0, sizeof(exist));
+		removed.clear();
+		renamed.clear();
+		exist.clear();
 		SetColor(color::foreground_chosen, color::background);
 		printf("Successfully updated disk %s.\n", disk_path);
 		SetColor(color::foreground_default, color::background);
@@ -668,8 +681,9 @@ RESTART:
 	if (!match.read_reg(con_buffer, 0))
 		goto FINISH;
 	string disk = "C:\\", filepath;
-	for (int x = 0; x < disk_num; x++, disk[0]++)
+	for (int x = 0; x < disk_num; x++)
 	{
+		disk[0] = disk_letters[x];
 		for (int i = 0; i < data[x].size(); i++)
 		{
 			if (restart_searching)
@@ -775,6 +789,7 @@ void sim_sort()
 	string disk = "C:\\";
 	for (int x = 0; x < disk_num; x++)
 	{
+		disk[0] = disk_letters[x];
 		for (int i = 0; i < data[x].size(); i++)
 		{
 			//cout<<i<<endl;
@@ -836,7 +851,7 @@ void sim_sort()
 				while (true)
 				{
 					string tmp1 = disk;
-					tmp1[0] += now->disk;
+					tmp1[0] = disk_letters[now->disk];
 					File tmp(now->info, now->disk, tmp1 + get_path(now->disk, now->num));
 					//cout<<now->similarity<<endl;
 					print_res1(tmp);
@@ -976,7 +991,7 @@ void start_searching()
 				}
 				continue;
 			case 1: //help
-				ShellExecute(NULL, _T("open"), _T("help.txt"), NULL, NULL, SW_SHOW);
+				ShellExecuteA(NULL, "open", "help.txt", NULL, NULL, SW_SHOW);
 				break;
 			}
 			F5_flag = 0;
@@ -1008,11 +1023,11 @@ void start_searching()
 				if (result[pa[page_now].l + now_result - 1].filesize == -1)
 				{
 					tmp_path += "\\";
-					ShellExecute(NULL, _T("explore"), _T(tmp_path.c_str()), NULL, NULL, SW_SHOW); //打开文件夹
+					ShellExecuteA(NULL, "explore", tmp_path.c_str(), NULL, NULL, SW_SHOW); //打开文件夹
 				}
 				else
 				{
-					ShellExecute(NULL, _T("open"), _T(tmp_path.c_str()), NULL, NULL, SW_SHOW); //默认方式运行
+					ShellExecuteA(NULL, "open", tmp_path.c_str(), NULL, NULL, SW_SHOW); //默认方式运行
 				}
 			}
 			continue;
@@ -1171,16 +1186,21 @@ void start_searching()
 		{ //更新关键字重新搜索
 			if (c == 22)
 			{ //读取剪切板
-				char *ClipBoard = GetClipboard();
-				if (ClipBoard == NULL)
+				string ClipBoard = GetClipboard();
+				if (ClipBoard.empty())
 					continue;
-				for (int i = 0; ClipBoard[i]; i++)
+				for (int i = 0; i < ClipBoard.length(); i++)
 				{
+					if (bufferlen + 1 >= (int)sizeof(con_buffer) - 1)
+						break;
 					con_buffer[++bufferlen] = ClipBoard[i];
 				}
 			}
 			else
 			{
+				int bytes_needed = (c < 0) ? 2 : 1;
+				if (bufferlen + bytes_needed >= (int)sizeof(con_buffer) - 1)
+					continue;
 				con_buffer[++bufferlen] = c;
 			}
 			page_now = 1;
